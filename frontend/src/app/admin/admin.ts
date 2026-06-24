@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
   standalone: true,
   imports: [FormsModule],
   templateUrl: './admin.html',
-  styleUrl: './admin.css'
+  styleUrl: './admin.scss'
 })
 export class AdminComponent implements OnInit {
   private http = inject(HttpClient);
