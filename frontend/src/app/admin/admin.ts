@@ -1,36 +1,48 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 @Component({
   selector: 'app-admin',
-  standalone: true,
-  imports: [FormsModule],
   templateUrl: './admin.html',
-  styleUrl: './admin.scss'
+  standalone: true,
+  imports: [FormsModule, CommonModule]
 })
 export class AdminComponent implements OnInit {
-  private http = inject(HttpClient);
-  
-  activeTab = signal<'clients' | 'create-office'>('clients');
-  clients = signal<any[]>([]);
-  officeData = { email: '', password: '', first_name: '', last_name: '' };
+  activeTab: 'clients' | 'office' = 'clients';
+  users: any[] = [];
+  newOfficeEmail = '';
+  newOfficePassword = '';
+
+  constructor(private http: HttpClient) {}
 
   ngOnInit() {
-    this.loadClients();
+    this.fetchUsers();
   }
 
-  loadClients() {
-    this.http.get<any[]>('http://localhost:8000/api/admin/clients/').subscribe(data => this.clients.set(data));
+  setTab(tab: 'clients' | 'office') {
+    this.activeTab = tab;
+    this.fetchUsers();
   }
 
-  onCreateOffice() {
-    this.http.post('http://localhost:8000/api/admin/create-office/', this.officeData).subscribe({
-      next: () => {
-        alert('Office personnel configured successfully.');
-        this.officeData = { email: '', password: '', first_name: '', last_name: '' };
-        this.activeTab.set('clients');
-      }
-    });
+  getHeaders() {
+    return new HttpHeaders().set('Authorization', `Bearer ${localStorage.getItem('access')}`);
+  }
+
+  fetchUsers() {
+    const roleMap = this.activeTab === 'clients' ? 'USER' : 'OFFICE';
+    this.http.get(`http://localhost:8000/api/admin/users/?role=${roleMap}`, { headers: this.getHeaders() })
+      .subscribe((data: any) => this.users = data);
+  }
+
+  createOfficeUser() {
+    const payload = { email: this.newOfficeEmail, password: this.newOfficePassword };
+    this.http.post('http://localhost:8000/api/admin/users/office/', payload, { headers: this.getHeaders() })
+      .subscribe(() => {
+        this.fetchUsers();
+        this.newOfficeEmail = '';
+        this.newOfficePassword = '';
+      });
   }
 }

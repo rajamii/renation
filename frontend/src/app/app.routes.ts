@@ -1,29 +1,32 @@
-// frontend/src/app/app.routes.ts
 import { Routes } from '@angular/router';
 import { roleGuard } from './services/auth.guard';
+import { AdminComponent } from './admin/admin';
+import { LoginComponent } from './login/login';
+import { LandingComponent } from './landing/landing';
+import { Office } from './office/office'; 
+import { Dashboard } from './dashboard/dashboard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { 
-    path: 'login', 
-    loadComponent: () => import('./login/login').then(m => m.LoginComponent) 
-  },
-  // Protected Admin Route
+  { path: '', component: LandingComponent }, // Public
+  { path: 'login', component: LoginComponent }, // Public
+  
+  // Protected Routes
   { 
     path: 'admin', 
-    loadComponent: () => import('./admin/admin').then(m => m.AdminComponent),
-    canActivate: [roleGuard(['ADMIN'])] 
+    component: AdminComponent,
+    canActivate: [roleGuard(['ADMIN'])] // Only Admin can access
   },
-  // Protected Office Route
   { 
     path: 'office', 
-    loadComponent: () => import('./office/office').then(m => m.Office),
-    canActivate: [roleGuard(['OFFICE', 'ADMIN'])]
+    component: Office, // Replace with your actual office component
+    canActivate: [roleGuard(['ADMIN', 'OFFICE'])] // Admins and Office staff can access
   },
-  // Protected Client Route
   { 
     path: 'dashboard', 
-    loadComponent: () => import('./dashboard/dashboard').then(m => m.Dashboard),
-    canActivate: [roleGuard(['USER'])] 
-  }
+    component: Dashboard, // Replace with your actual user dashboard
+    canActivate: [roleGuard(['ADMIN', 'OFFICE', 'USER'])] // Any authenticated user
+  },
+  
+  // Fallback route
+  { path: '**', redirectTo: '' }
 ];

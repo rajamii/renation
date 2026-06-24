@@ -1,52 +1,70 @@
-<div class="admin-dashboard">
-    <header>
-        <h1>Studio Administration</h1>
-        <div class="tabs">
-            <button (click)="activeTab.set('clients')" [class.active]="activeTab() === 'clients'">Client
-                Database</button>
-            <button (click)="activeTab.set('create-office')" [class.active]="activeTab() === 'create-office'">Onboard
-                Office User</button>
-        </div>
-    </header>
+<div class="min-h-screen bg-gray-50 p-8">
+    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
 
-    <main>
-        @if (activeTab() === 'clients') {
-        <div class="panel">
-            <h3>Registered Clients</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Email</th>
-                        <th>First Name</th>
-                        <th>Last Name</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (client of clients(); track client.id) {
-                    <tr>
-                        <td>{{ client.email }}</td>
-                        <td>{{ client.first_name }}</td>
-                        <td>{{ client.last_name }}</td>
-                    </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="border-b border-gray-200">
+            <nav class="flex -mb-px">
+                <button (click)="setTab('clients')" [class.border-black]="activeTab === 'clients'"
+                    [class.text-black]="activeTab === 'clients'"
+                    class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 transition">
+                    Client Users
+                </button>
+                <button (click)="setTab('office')" [class.border-black]="activeTab === 'office'"
+                    [class.text-black]="activeTab === 'office'"
+                    class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 transition">
+                    Office Users
+                </button>
+            </nav>
         </div>
-        }
 
-        @if (activeTab() === 'create-office') {
-        <div class="panel max-w-md">
-            <h3>Create Office Employee Account</h3>
-            <form (ngSubmit)="onCreateOffice()">
-                <input type="email" name="oEmail" [(ngModel)]="officeData.email" placeholder="Employee Email"
-                    required />
-                <input type="password" name="oPassword" [(ngModel)]="officeData.password"
-                    placeholder="Temporary Password" required />
-                <input type="text" name="oFirst" [(ngModel)]="officeData.first_name" placeholder="First Name" />
-                <input type="text" name="oLast" [(ngModel)]="officeData.last_name" placeholder="Last Name" />
-                <button type="submit">Provision Account</button>
-            </form>
+        <div class="p-6">
+            @if (activeTab === 'office') {
+            <div class="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Add New Office User</h3>
+                <div class="flex gap-4">
+                    <input [(ngModel)]="newOfficeEmail" type="email" placeholder="Email"
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-black focus:border-black sm:text-sm">
+                    <input [(ngModel)]="newOfficePassword" type="password" placeholder="Password"
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-black focus:border-black sm:text-sm">
+                    <button (click)="createOfficeUser()"
+                        class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 text-sm font-medium">Create</button>
+                </div>
+            </div>
+            }
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Email</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Role</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @for (user of users; track user.email) {
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.email }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span
+                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                    {{ user.role }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ user.date_joined | date }}
+                            </td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
-        }
-    </main>
+
+    </div>
 </div>

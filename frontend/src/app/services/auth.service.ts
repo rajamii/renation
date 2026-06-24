@@ -1,37 +1,38 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { tap } from 'rxjs/operators';
+import { tap } from 'rxjs';
 
-export interface UserProfile {
-  id: number;
-  email: string;
-  role: 'USER' | 'OFFICE' | 'ADMIN';
-}
-
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class AuthService {
-  private http = inject(HttpClient);
   private apiUrl = 'http://localhost:8000/api';
   
-  // Reactive State
-  currentUser = signal<UserProfile | null>(null);
-  token = signal<string | null>(localStorage.getItem('token'));
+  // Use Angular Signals to match your auth.guard.ts
+  currentUser = signal<{role: string, email?: string} | null>(null);
+
+  constructor(private http: HttpClient) {
+    const role = localStorage.getItem('role');
+    if (role) {
+      this.currentUser.set({ role });
+    }
+  }
 
   login(credentials: any) {
-    return this.http.post<{
-      role: string; access: string, user: UserProfile 
-}>(`${this.apiUrl}/token/`, credentials).pipe(
-      tap(res => {
-        localStorage.setItem('token', res.access);
-        this.token.set(res.access);
-        this.currentUser.set(res.user);
+    return this.http.post(`${this.apiUrl}/auth/login/`, credentials).pipe(
+      tap((res: any) => {
+        localStorage.setItem('access', res.access);
+        localStorage.setItem('refresh', res.refresh);
+        localStorage.setItem('role', res.role);
+        
+        // Update the signal
+        this.currentUser.set({ role: res.role, email: res.email });
       })
     );
   }
 
   logout() {
-    localStorage.removeItem('token');
-    this.token.set(null);
+    localStorage.clear();
     this.currentUser.set(null);
   }
 }
