@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, generics, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -94,10 +95,25 @@ class ServiceViewSet(viewsets.ModelViewSet):
 
 
 class AppointmentSlotViewSet(viewsets.ModelViewSet):
-    """Allows office staff and admin teams to freely create and manage schedule windows."""
-    queryset = AppointmentSlot.objects.filter(is_active=True)
+    """
+    Allows authenticated users to list/lookup slots by date, 
+    while restricting full management CRUD operations to Admin/Office staff teams.
+    """
     serializer_class = AppointmentSlotSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrOffice]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsAdminOrOffice()]
+
+    def get_queryset(self):
+
+        queryset = AppointmentSlot.objects.filter(is_active=True)
+        target_date = self.request.query_params.get('date', None)
+        if target_date is not None:
+            queryset = queryset.filter(date=target_date)
+            
+        return queryset.order_by('start_time')
 
 
 class BookingViewSet(viewsets.ModelViewSet):
@@ -109,8 +125,31 @@ class BookingViewSet(viewsets.ModelViewSet):
         if user.role_id in ['ADMIN', 'OFFICE']:
             return Booking.objects.all().order_by('-created_at')
         return Booking.objects.filter(user=user).order_by('-created_at')
+    
+    def validate_slot_capacity(self, slot_instance, target_date, exclude_booking_id=None):
+        """
+        Validates that a given time slot hasn't exceeded its max capacity 
+        for a specific date. Supports excluding a booking ID to prevent self-conflict.
+        """
+        if slot_instance:
+            active_bookings = Booking.objects.filter(
+                slot=slot_instance,
+                requested_date=target_date
+            ).exclude(status__code='CANCELLED')
+
+            if exclude_booking_id is not None:
+                active_bookings = active_bookings.exclude(id=exclude_booking_id)
+
+            active_bookings_count = active_bookings.count()
+
+            if active_bookings_count >= slot_instance.max_capacity:
+                raise ValidationError({
+                    "error": f"The selected time slot ({slot_instance.start_time} - {slot_instance.end_time}) "
+                             f"has reached its max capacity of {slot_instance.max_capacity} concurrent vehicles for this day."
+                })
 
     def _log_action(self, booking, actor):
+        from .models import BookingLog
         BookingLog.objects.create(
             booking_id=booking.id,
             client_email=booking.user.email,
@@ -122,6 +161,11 @@ class BookingViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         service = serializer.validated_data.get('service')
         vehicle_category = serializer.validated_data.get('vehicle_category')
+        requested_date = serializer.validated_data.get('requested_date')
+        slot = serializer.validated_data.get('slot')
+        
+        if slot:
+            self.validate_slot_capacity(slot, requested_date)
         
         try:
             matrix_entry = ServicePriceMatrix.objects.get(service=service, category=vehicle_category)
@@ -140,8 +184,13 @@ class BookingViewSet(viewsets.ModelViewSet):
         new_timeline = request.data.get('estimated_delivery_timeline')
         slot_id = request.data.get('slot')
 
+        should_validate_capacity = False
+
         if new_status_code:
             try:
+                if booking.status.code != 'CONFIRMED' and new_status_code == 'CONFIRMED':
+                    should_validate_capacity = True
+
                 booking.status = BookingStatusMaster.objects.get(code=new_status_code)
             except BookingStatusMaster.DoesNotExist:
                 return Response({'error': 'Invalid Master Status Selection Code'}, status=status.HTTP_400_BAD_REQUEST)
@@ -150,7 +199,17 @@ class BookingViewSet(viewsets.ModelViewSet):
             booking.estimated_delivery_timeline = new_timeline
             
         if slot_id:
-            booking.slot_id = slot_id
+            try:
+                slot_instance = AppointmentSlot.objects.get(id=slot_id)
+                booking.slot = slot_instance
+            except AppointmentSlot.DoesNotExist:
+                return Response({'error': 'Selected Appointment Slot does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if slot_id and booking.status.code == 'CONFIRMED':
+            should_validate_capacity = True
+
+        if should_validate_capacity and booking.slot:
+            self.validate_slot_capacity(booking.slot, booking.requested_date, exclude_booking_id=booking.id)
             
         booking.save()
         self._log_action(booking, request.user)

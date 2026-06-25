@@ -106,16 +106,13 @@ class AppointmentSlotSerializer(serializers.ModelSerializer):
         model = AppointmentSlot
         fields = '__all__'
 
+
 class BookingSerializer(serializers.ModelSerializer):
     status_name = serializers.CharField(source='status.name', read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
+    slot_start = serializers.TimeField(source='slot.start_time', read_only=True)
+    slot_end = serializers.TimeField(source='slot.end_time', read_only=True)
 
     class Meta:
         model = Booking
-        fields = [
-            'id', 'user', 'service', 'service_name', 'vehicle_category', 
-            'vehicle_make_model', 'vehicle_license_plate', 'requested_date', 
-            'slot', 'status', 'status_name', 'estimated_delivery_timeline', 
-            'final_price', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['user', 'status', 'final_price']
+        fields = '__all__'

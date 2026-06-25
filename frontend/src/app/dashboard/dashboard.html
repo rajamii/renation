@@ -1,22 +1,154 @@
 <div class="min-h-screen bg-neutral-950 text-neutral-100 font-sans antialiased">
-  <!-- Dynamic Role-Based View Switcher Wrapper -->
   <ng-container [ngSwitch]="userRole">
     
-    <!-- Render the complete administrative console if the user is an ADMIN -->
     <app-admin *ngSwitchCase="'ADMIN'"></app-admin>
 
-    <!-- Render the core workshop schedule workspace if the user is an OFFICE operator -->
     <app-office *ngSwitchCase="'OFFICE'"></app-office>
 
-    <!-- Fallback structural handling context indicator layer -->
+    <div *ngSwitchCase="'USER'" class="max-w-7xl mx-auto p-6 min-h-screen flex flex-col justify-start">
+      <header class="flex justify-between items-center border-b border-neutral-800 pb-4 mb-8">
+        <div>
+          <h1 class="text-xl font-semibold text-white tracking-tight">Customer Dashboard</h1>
+          <p class="text-xs text-neutral-400">Logged in as: {{ userEmail }}</p>
+        </div>
+        <button (click)="logout()" class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 text-neutral-300 rounded text-xs hover:bg-neutral-800 transition-colors cursor-pointer">
+          Logout
+        </button>
+      </header>
+
+      <div *ngIf="successMessage" class="mb-4 p-3 bg-emerald-950 border border-emerald-800 text-emerald-400 rounded text-xs">
+        {{ successMessage }}
+      </div>
+      <div *ngIf="errorMessage" class="mb-4 p-3 bg-rose-950 border border-rose-800 text-rose-400 rounded text-xs">
+        {{ errorMessage }}
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <div class="lg:col-span-5 bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl">
+          <div class="mb-6">
+            <h2 class="text-base font-medium text-white">Book an Appointment</h2>
+            <p class="text-xs text-neutral-400">Provide service details to request an automated schedule slot.</p>
+          </div>
+
+          <form (ngSubmit)="submitBooking()" #bookingFormRef="ngForm" class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Required Treatment Service *</label>
+              <select name="service" [(ngModel)]="bookingForm.service" required class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700">
+                <option value="" disabled selected>Choose a Service</option>
+                <option *ngFor="let s of servicesList" [value]="s.id">{{ s.name }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Vehicle Classification Tiers *</label>
+              <select name="vehicle_category" [(ngModel)]="bookingForm.vehicle_category" required class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700">
+                <option value="" disabled selected>Select Tier Category</option>
+                <option *ngFor="let c of categoriesList" [value]="c.code">{{ c.name }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Vehicle Make & Model *</label>
+              <input type="text" name="vehicle_make_model" [(ngModel)]="bookingForm.vehicle_make_model" required placeholder="e.g. Honda Civic" class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-neutral-700" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-neutral-400 mb-1.5">License Plate ID (Optional)</label>
+              <input type="text" name="vehicle_license_plate" [(ngModel)]="bookingForm.vehicle_license_plate" placeholder="e.g. DL-3C-1234" class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-neutral-700" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Requested Date *</label>
+              <input type="date" name="requested_date" [(ngModel)]="bookingForm.requested_date" (change)="onDateChange()" required class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700" />
+            </div>
+
+            <div *ngIf="bookingForm.requested_date">
+              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Available Time Slot *</label>
+              <select name="slot" [(ngModel)]="bookingForm.slot" required class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700 disabled:opacity-50">
+                <option value="" disabled selected *ngIf="availableSlots.length > 0">Select an Operating Time Window</option>
+                <option value="" disabled selected *ngIf="availableSlots.length === 0">No operating slots published for this day</option>
+                <option *ngFor="let slot of availableSlots" [value]="slot.id">
+                  {{ slot.start_time | slice:0:5 }} - {{ slot.end_time | slice:0:5 }} (Capacity: {{ slot.max_capacity }})
+                </option>
+              </select>
+            </div>
+
+            <div class="pt-4 border-t border-neutral-800 flex justify-end">
+              <button type="submit" [disabled]="!bookingFormRef.form.valid" class="w-full px-5 py-2 rounded bg-neutral-100 hover:bg-neutral-200 text-neutral-950 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+                Confirm & Request Booking
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="lg:col-span-7 space-y-4">
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl">
+            <div class="mb-4">
+              <h2 class="text-base font-medium text-white">Your Appointments Pipeline</h2>
+              <p class="text-xs text-neutral-400">Track real-time status updates and scheduled allocations for your vehicles.</p>
+            </div>
+
+            <div *ngIf="userBookings.length === 0" class="border border-dashed border-neutral-800 rounded-lg p-8 text-center text-neutral-500 text-xs font-mono">
+              No historical workshop records found for this client account.
+            </div>
+
+            <div *ngIf="userBookings.length > 0" class="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+              <div *ngFor="let booking of userBookings" class="bg-neutral-950 border border-neutral-800 rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-semibold text-white">{{ booking.service_name || 'Workshop Treatment' }}</span>
+                    <span class="text-[10px] font-mono uppercase bg-neutral-900 border border-neutral-800 px-1.5 py-0.5 rounded text-neutral-400">
+                      {{ booking.vehicle_category }}
+                    </span>
+                  </div>
+                  <p class="text-xs text-neutral-300">{{ booking.vehicle_make_model }} <span class="text-neutral-500" *ngIf="booking.vehicle_license_plate">({{ booking.vehicle_license_plate }})</span></p>
+                  
+                  <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-neutral-400">
+                    <span class="flex items-center gap-1">
+                      📅 Date: {{ booking.requested_date | date:'mediumDate' }}
+                    </span>
+                    <span *ngIf="booking.slot_start" class="text-amber-400 flex items-center gap-1 font-medium">
+                      ⏱️ Time: {{ booking.slot_start | slice:0:5 }} - {{ booking.slot_end | slice:0:5 }}
+                    </span>
+                    <span *ngIf="!booking.slot_start" class="text-neutral-500 flex items-center gap-1">
+                      ⏱️ Slot Pending allocation
+                    </span>
+                    <span *ngIf="booking.final_price" class="text-emerald-400 font-medium">
+                      ₹{{ booking.final_price }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex flex-col items-end gap-1.5 w-full md:w-auto border-t md:border-t-0 border-neutral-900 pt-2 md:pt-0">
+                  <span class="text-[10px] tracking-wider font-mono uppercase font-semibold px-2 py-1 rounded border"
+                        [ngClass]="{
+                          'bg-amber-950/40 text-amber-400 border-amber-900/50': booking.status === 'PENDING',
+                          'bg-emerald-950/40 text-emerald-400 border-emerald-900/50': booking.status === 'CONFIRMED',
+                          'bg-blue-950/40 text-blue-400 border-blue-900/50': booking.status === 'COMPLETED',
+                          'bg-rose-950/40 text-rose-400 border-rose-900/50': booking.status === 'CANCELLED'
+                        }">
+                    ● {{ booking.status_name || booking.status }}
+                  </span>
+                  <span class="text-[10px] text-neutral-500" *ngIf="booking.estimated_delivery_timeline">
+                    ETA: {{ booking.estimated_delivery_timeline }}
+                  </span>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <div *ngSwitchDefault class="flex flex-col items-center justify-center min-h-screen p-6 text-center">
       <div class="w-12 h-12 rounded-full border border-neutral-800 flex items-center justify-center mb-4 animate-pulse">
         <span class="text-xs font-mono text-neutral-500">...</span>
       </div>
       <h3 class="text-sm font-medium text-white mb-1">Evaluating Access Privileges</h3>
-      <p class="text-xs text-neutral-400 max-w-xs leading-relaxed mb-4">
-        Please wait while the console synchronizes your role credentials with the security subsystem.
-      </p>
       <button (click)="logout()" class="text-xs text-neutral-500 hover:text-white transition-colors cursor-pointer underline underline-offset-4">
         Return to Login
       </button>
