@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 
 from .models import Service, AppointmentSlot, Booking, BookingLog, VehicleCategoryMaster, BookingStatusMaster, RoleMaster, ServicePriceMatrix
 from .serializers import (
-    ServiceSerializer, 
+    ServiceMatrixSerializer, 
     AppointmentSlotSerializer, 
     BookingSerializer, 
     VehicleCategoryMasterSerializer, 
@@ -73,11 +73,27 @@ class ConfigurationViewSet(viewsets.ViewSet):
 # 3. CORE MANAGEMENT CORE BUSINESS VIEWS
 # ==========================================
 
-class ServiceViewSet(viewsets.ModelViewSet):
-    queryset = Service.objects.all()
-    serializer_class = ServiceSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOfficeOrReadOnly]
+class ServiceMatrixViewSet(viewsets.ModelViewSet):
+    queryset = Service.objects.prefetch_related('price_matrix').all()
+    serializer_class = ServiceMatrixSerializer
 
+    def get_permissions(self):
+        # Allow client roles to view services, but reserve changes for Admin/Office
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.IsAuthenticated]
+        else:
+            permission_classes = [permissions.IsAuthenticated, IsAdminOrOffice]
+        return [permission() for permission in permission_classes]
+
+class VehicleCategoryMasterViewSet(viewsets.ModelViewSet):
+    queryset = VehicleCategoryMaster.objects.all()
+    serializer_class = VehicleCategoryMasterSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrOffice]
+
+class BookingStatusMasterViewSet(viewsets.ModelViewSet):
+    queryset = BookingStatusMaster.objects.all()
+    serializer_class = BookingStatusMasterSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrOffice]
 
 class AppointmentSlotViewSet(viewsets.ModelViewSet):
     queryset = AppointmentSlot.objects.filter(is_active=True)

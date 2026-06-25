@@ -1,13 +1,15 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    ServiceViewSet, 
+    ServiceMatrixViewSet, 
     AppointmentSlotViewSet, 
     BookingViewSet, 
     ConfigurationViewSet, 
     AdminDashboardViewSet,
     RegisterView,
-    CustomTokenObtainPairView
+    CustomTokenObtainPairView,
+    VehicleCategoryMasterViewSet,
+    BookingStatusMasterViewSet
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -15,7 +17,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 router = DefaultRouter()
 
 # 1. Main Operation Business Pipeline Endpoints
-router.register(r'services', ServiceViewSet, basename='services')
+router.register(r'services', ServiceMatrixViewSet, basename='services')
 router.register(r'slots', AppointmentSlotViewSet, basename='slots')
 router.register(r'bookings', BookingViewSet, basename='bookings')
 
@@ -24,6 +26,10 @@ router.register(r'config', ConfigurationViewSet, basename='config')
 
 # 3. Custom Admin Command Console Workspace Router Endpoint
 router.register(r'admin', AdminDashboardViewSet, basename='admin-dashboard')
+
+router.register(r'services', ServiceMatrixViewSet, basename='service-matrix')
+router.register(r'master/vehicle-categories', VehicleCategoryMasterViewSet, basename='master-vehicle-category')
+router.register(r'master/booking-statuses', BookingStatusMasterViewSet, basename='master-booking-status')
 
 urlpatterns = [
     # Router endpoints interface mapping

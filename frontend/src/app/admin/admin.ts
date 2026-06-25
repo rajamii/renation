@@ -93,32 +93,36 @@ export class AdminComponent implements OnInit {
   }
 
   createServiceType() {
-    if (!this.newService.name) return;
+  if (!this.newService.name) return;
 
-    const filteredPrices = this.categoryPricesForm
-      .filter(item => item.price_in_rupees !== null)
-      .map(item => ({
-        category: item.category,
-        price_in_rupees: item.price_in_rupees
-      }));
+  // Gather only categories where a price has been explicitly inserted
+  const filteredMatrix = this.categoryPricesForm
+    .filter(item => item.price_in_rupees !== null && item.price_in_rupees !== '')
+    .map(item => ({
+      category: item.category, // e.g., 'HATCHBACK'
+      price_in_rupees: item.price_in_rupees
+    }));
 
-    const payload = {
-      name: this.newService.name,
-      description: this.newService.description,
-      estimated_duration_hours: this.newService.estimated_duration_hours,
-      prices: filteredPrices
-    };
+  // Build the nested matrix payload structure
+  const payload = {
+    name: this.newService.name,
+    description: this.newService.description,
+    estimated_duration_hours: this.newService.estimated_duration_hours,
+    price_matrix: filteredMatrix // <-- Swapped from 'prices' to match backend field
+  };
 
-    this.http.post('http://localhost:8000/api/services/', payload, { headers: this.getHeaders() })
-      .subscribe({
-        next: () => {
-          this.fetchServices();
-          this.newService = { name: '', description: '', estimated_duration_hours: '1.0' };
-          this.categoryPricesForm.forEach(item => item.price_in_rupees = null);
-        },
-        error: (err) => console.error('Failed to register service matrix', err)
-      });
-  }
+  this.http.post('http://localhost:8000/api/services/', payload, { headers: this.getHeaders() })
+    .subscribe({
+      next: () => {
+        this.fetchServices(); // Refresh list view
+        // Reset primary form properties
+        this.newService = { name: '', description: '', estimated_duration_hours: '1.0' };
+        // Empty out category value fields
+        this.categoryPricesForm.forEach(item => item.price_in_rupees = null);
+      },
+      error: (err) => console.error('Failed to register service matrix', err)
+    });
+}
 
   fetchAuditLogs() {
     this.http.get('http://localhost:8000/api/admin/logs/', { headers: this.getHeaders() })

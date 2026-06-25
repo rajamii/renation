@@ -40,49 +40,57 @@ class RegisterSerializer(serializers.ModelSerializer):
 class VehicleCategoryMasterSerializer(serializers.ModelSerializer):
     class Meta:
         model = VehicleCategoryMaster
-        fields = '__all__'
-
+        fields = ['code', 'name']
 
 class BookingStatusMasterSerializer(serializers.ModelSerializer):
     class Meta:
         model = BookingStatusMaster
-        fields = '__all__'
+        fields = ['code', 'name', 'ui_color_class']
 
 # ==========================================
 # 3. WORKSHOP TREATMENT MATRIX SERIALIZERS
 # ==========================================
 
 class ServicePriceMatrixSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    category_code = serializers.CharField(source='category.code', read_only=True)
-
     class Meta:
         model = ServicePriceMatrix
-        fields = ('category_code', 'category_name', 'price_in_rupees')
+        fields = ['id', 'category', 'price_in_rupees']
 
-
-class ServiceSerializer(serializers.ModelSerializer):
-    # Overridden to accept custom nested matrix writes from the custom admin form dashboard
-    prices = ServicePriceMatrixSerializer(many=True, required=False)
+class ServiceMatrixSerializer(serializers.ModelSerializer):
+    # This embeds the category-specific pricing array directly inside the Service object
+    price_matrix = ServicePriceMatrixSerializer(many=True, required=False)
 
     class Meta:
         model = Service
-        fields = ('id', 'name', 'description', 'estimated_duration_hours', 'prices')
+        fields = ['id', 'name', 'estimated_duration_hours', 'price_matrix']
 
     def create(self, validated_data):
-        # Pop standard request data out
-        prices_data = self.context['request'].data.get('prices', [])
+        # Extract the price matrix data out of the payload
+        matrix_data = validated_data.pop('price_matrix', [])
+        # Save the primary Service record
         service = Service.objects.create(**validated_data)
         
-        # Iteratively write pricing matrix parameters for each vehicle class category
-        for price_item in prices_data:
-            category_instance = VehicleCategoryMaster.objects.get(code=price_item['category'])
-            ServicePriceMatrix.objects.create(
-                service=service,
-                category=category_instance,
-                price_in_rupees=price_item['price_in_rupees']
-            )
+        # Iteratively attach the pricing matrix metadata rows
+        for item in matrix_data:
+            ServicePriceMatrix.objects.create(service=service, **item)
         return service
+
+    def update(self, instance, validated_data):
+        matrix_data = validated_data.pop('price_matrix', None)
+        
+        # Update core service attributes
+        instance.name = validated_data.get('name', instance.name)
+        instance.estimated_duration_hours = validated_data.get('estimated_duration_hours', instance.estimated_duration_hours)
+        instance.save()
+
+        # If a new matrix map is provided, update or overwrite the existing configurations
+        if matrix_data is not None:
+            # Simple approach: clear out old prices and rebuild the pricing structure
+            instance.price_matrix.all().delete()
+            for item in matrix_data:
+                ServicePriceMatrix.objects.create(service=instance, **item)
+                
+        return instance
 
 
 class AppointmentSlotSerializer(serializers.ModelSerializer):
