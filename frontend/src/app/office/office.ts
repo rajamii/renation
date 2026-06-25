@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
@@ -9,90 +9,109 @@ import { AuthService } from '../services/auth.service';
   selector: 'app-office',
   templateUrl: './office.html',
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [FormsModule, CommonModule]
 })
-export class Office implements OnInit {
-  private baseApi = 'http://localhost:8000/api';
-
-  allBookings: any[] = [];
-  availableSlots: any[] = [];
-  masterStatuses: any[] = [];
-
+export class OfficeComponent implements OnInit {
+  bookings: any[] = [];
+  slots: any[] = [];
+  statuses: any[] = [];
+  
+  // Slot Creation Form Bindings matching Django models configuration fields
   newSlot = {
     date: '',
-    start_time: '09:00:00',
-    end_time: '12:00:00',
-    max_capacity: 2
+    start_time: '',
+    end_time: '',
+    max_capacity: 1,
+    is_active: true
   };
+
+  // State handles tracking active status change overlays
+  selectedBooking: any = null;
+  updatingStatus = '';
+  updatingTimeline = '';
+  updatingSlotId: number | null = null;
 
   constructor(
     private http: HttpClient,
     private authService: AuthService,
     private router: Router
-  ) { }
+  ) {}
 
   ngOnInit() {
-    this.loadMasterConfigurations();
-    this.loadAllSystemBookings();
-    this.loadActiveAvailableSlots();
+    this.fetchBookings();
+    this.fetchSlots();
+    this.loadMetaLookups();
   }
 
-  private getHeaders() {
+  getHeaders() {
     return new HttpHeaders().set('Authorization', `Bearer ${localStorage.getItem('access')}`);
   }
 
-  loadMasterConfigurations() {
-    this.http.get(`${this.baseApi}/config/meta_lookup/`, { headers: this.getHeaders() })
-      .subscribe({
-        next: (res: any) => this.masterStatuses = res.statuses,
-        error: (err) => console.error('Failed to parse status list parameters', err)
-      });
+  fetchBookings() {
+    this.http.get('http://localhost:8000/api/bookings/', { headers: this.getHeaders() })
+      .subscribe((data: any) => this.bookings = data);
   }
 
-  loadAllSystemBookings() {
-    this.http.get(`${this.baseApi}/bookings/`, { headers: this.getHeaders() })
-      .subscribe({
-        next: (res: any) => this.allBookings = res,
-        error: (err) => console.error('Failed to load active shop pipeline', err)
-      });
+  fetchSlots() {
+    this.http.get('http://localhost:8000/api/slots/', { headers: this.getHeaders() })
+      .subscribe((data: any) => this.slots = data);
   }
 
-  loadActiveAvailableSlots() {
-    this.http.get(`${this.baseApi}/slots/`, { headers: this.getHeaders() })
-      .subscribe({
-        next: (res: any) => this.availableSlots = res,
-        error: (err) => console.error('Failed to parse calendar blocks', err)
-      });
+  loadMetaLookups() {
+    this.http.get('http://localhost:8000/api/config/meta_lookup/', { headers: this.getHeaders() })
+      .subscribe((res: any) => this.statuses = res.statuses);
   }
 
   createSlot() {
-    if (!this.newSlot.date) return;
+    if (!this.newSlot.date || !this.newSlot.start_time || !this.newSlot.end_time) return;
 
-    this.http.post(`${this.baseApi}/slots/`, this.newSlot, { headers: this.getHeaders() })
+    // Standardize time formatting inputs cleanly for Django's TimeField parser validation
+    const payload = {
+      date: this.newSlot.date,
+      start_time: this.newSlot.start_time.length === 5 ? `${this.newSlot.start_time}:00` : this.newSlot.start_time,
+      end_time: this.newSlot.end_time.length === 5 ? `${this.newSlot.end_time}:00` : this.newSlot.end_time,
+      max_capacity: this.newSlot.max_capacity,
+      is_active: true
+    };
+
+    this.http.post('http://localhost:8000/api/slots/', payload, { headers: this.getHeaders() })
       .subscribe({
         next: () => {
-          alert(`Available slots for ${this.newSlot.date} published to clients.`);
-          this.newSlot.date = '';
-          this.loadActiveAvailableSlots();
+          this.fetchSlots();
+          // Clear inputs upon execution success
+          this.newSlot = { date: '', start_time: '', end_time: '', max_capacity: 1, is_active: true };
         },
-        error: (err) => console.error('Slot construction failure', err)
+        error: (err) => console.error('Failed to provision scheduling slot', err)
       });
   }
 
-  confirmAndAssignBooking(bookingItem: any) {
-    const payload = {
-      status: 'CONFIRMED',
-      slot: bookingItem.targetSlotId,
-      estimated_delivery_timeline: bookingItem.temp_delivery_timeline || ''
-    };
-    this.updateBookingPayload(bookingItem.id, payload);
+  openUpdateModal(booking: any) {
+    this.selectedBooking = booking;
+    this.updatingStatus = booking.status;
+    this.updatingTimeline = booking.estimated_delivery_timeline || '';
+    this.updatingSlotId = booking.slot;
   }
 
-  updateBookingPayload(bookingId: number, updateData: { status?: string, slot?: number, estimated_delivery_timeline?: string }) {
-    this.http.patch(`${this.baseApi}/bookings/${bookingId}/update_status/`, updateData, { headers: this.getHeaders() })
+  closeModal() {
+    this.selectedBooking = null;
+  }
+
+  submitStatusUpdate() {
+    if (!this.selectedBooking) return;
+
+    const payload = {
+      status: this.updatingStatus,
+      estimated_delivery_timeline: this.updatingTimeline,
+      slot: this.updatingSlotId
+    };
+
+    this.http.patch(`http://localhost:8000/api/bookings/${this.selectedBooking.id}/update_status/`, payload, { headers: this.getHeaders() })
       .subscribe({
-        next: () => this.loadAllSystemBookings(),
-        error: (err) => console.error('Failed to save assignment updates', err)
+        next: () => {
+          this.fetchBookings();
+          this.closeModal();
+        },
+        error: (err) => console.error('Failed to commit operational tracking variables', err)
       });
   }
 

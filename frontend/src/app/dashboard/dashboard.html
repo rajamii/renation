@@ -1,154 +1,26 @@
 <div class="min-h-screen bg-neutral-950 text-neutral-100 font-sans antialiased">
-  <nav class="border-b border-neutral-900 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span class="text-sm font-semibold tracking-widest uppercase text-white">RefurbNation Portal</span>
-      </div>
-      <div class="flex items-center gap-6">
-        <button (click)="loadMyBookings()" class="text-xs text-neutral-400 hover:text-white transition-all cursor-pointer">
-          ⟳ Sync Status
-        </button>
-        <span class="text-xs text-neutral-400 bg-neutral-900 border border-neutral-800 px-3 py-1 rounded-full">Client Workspace</span>
-        <button (click)="logout()" class="text-xs text-neutral-500 hover:text-rose-400 transition-colors duration-200 cursor-pointer">
-          Leave Session
-        </button>
-      </div>
-    </div>
-  </nav>
-
-  <main class="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <!-- Dynamic Role-Based View Switcher Wrapper -->
+  <ng-container [ngSwitch]="userRole">
     
-    <div class="lg:col-span-1 space-y-6">
-      <div class="bg-neutral-900/40 border border-neutral-900 p-6 rounded-2xl backdrop-blur-md">
-        <h2 class="text-base font-medium text-white mb-1">Book New Treatment</h2>
-        <p class="text-xs text-neutral-500 mb-6">Select your studio treatment tier, vehicle class, and target date window.</p>
+    <!-- Render the complete administrative console if the user is an ADMIN -->
+    <app-admin *ngSwitchCase="'ADMIN'"></app-admin>
 
-        <form (ngSubmit)="createBooking()" class="space-y-5">
-          <div>
-            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-2 font-medium">1. Select Studio Treatment</label>
-            <select [(ngModel)]="selectedServiceId" (change)="calculateLiveQuote()" name="service" required
-              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-neutral-700 cursor-pointer">
-              <option [ngValue]="null" disabled>Choose treatment tier...</option>
-              <option *ngFor="let s of services" [ngValue]="s.id">
-                {{ s.name }}
-              </option>
-            </select>
-          </div>
+    <!-- Render the core workshop schedule workspace if the user is an OFFICE operator -->
+    <app-office *ngSwitchCase="'OFFICE'"></app-office>
 
-          <div>
-            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-2 font-medium">2. Vehicle Class Profile</label>
-            <select [(ngModel)]="selectedCategoryCode" (change)="calculateLiveQuote()" name="category" required
-              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-neutral-700 cursor-pointer">
-              <option value="" disabled>Select vehicle category...</option>
-              <option *ngFor="let cat of masterCategories" [value]="cat.code">
-                {{ cat.name }}
-              </option>
-            </select>
-          </div>
-
-          <div *ngIf="currentQuotePrice !== null" class="bg-neutral-900/80 border border-neutral-800 rounded-xl p-3 text-center text-xs animate-fade-in">
-            <span class="text-neutral-400">Treatment Cost Rate:</span>
-            <span class="text-emerald-400 font-bold ml-1 font-mono">
-              {{ currentQuotePrice | currency:'INR':'symbol':'1.0-2' }}
-            </span>
-          </div>
-
-          <div>
-            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-2 font-medium">3. Choose Preferred Date</label>
-            <input [(ngModel)]="requestedDate" name="requestedDate" type="date" required
-              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-neutral-700">
-          </div>
-
-          <div>
-            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-2 font-medium">4. Vehicle Make & Model</label>
-            <input [(ngModel)]="vehicleMakeModel" name="vehicleMakeModel" type="text" placeholder="e.g., Hyundai Creta 2024" required
-              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-neutral-700">
-          </div>
-
-          <div>
-            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-2 font-medium">5. License Plate (Optional)</label>
-            <input [(ngModel)]="vehicleLicensePlate" name="vehicleLicensePlate" type="text" placeholder="e.g., MH 12 AB 1234"
-              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-neutral-700">
-          </div>
-
-          <button type="submit" [disabled]="!selectedServiceId || !selectedCategoryCode || !requestedDate || !vehicleMakeModel"
-            class="w-full bg-white disabled:bg-neutral-900 disabled:text-neutral-600 disabled:border-neutral-900 text-black text-xs font-medium py-3 rounded-xl hover:bg-neutral-200 transition-all duration-200 mt-2 cursor-pointer border border-transparent">
-            Request Studio Intake Assignment
-          </button>
-        </form>
+    <!-- Fallback structural handling context indicator layer -->
+    <div *ngSwitchDefault class="flex flex-col items-center justify-center min-h-screen p-6 text-center">
+      <div class="w-12 h-12 rounded-full border border-neutral-800 flex items-center justify-center mb-4 animate-pulse">
+        <span class="text-xs font-mono text-neutral-500">...</span>
       </div>
+      <h3 class="text-sm font-medium text-white mb-1">Evaluating Access Privileges</h3>
+      <p class="text-xs text-neutral-400 max-w-xs leading-relaxed mb-4">
+        Please wait while the console synchronizes your role credentials with the security subsystem.
+      </p>
+      <button (click)="logout()" class="text-xs text-neutral-500 hover:text-white transition-colors cursor-pointer underline underline-offset-4">
+        Return to Login
+      </button>
     </div>
 
-    <div class="lg:col-span-2 space-y-6">
-      <div class="bg-neutral-900/20 border border-neutral-900 rounded-2xl overflow-hidden backdrop-blur-md">
-        <div class="p-6 border-b border-neutral-900 bg-neutral-900/10">
-          <h2 class="text-base font-medium text-white">Your Orders & Active Timelines</h2>
-          <p class="text-xs text-neutral-500 mt-1">Real-time delivery status metrics running direct from the detailing floor.</p>
-        </div>
-
-        <div class="divide-y divide-neutral-900">
-          <div *ngFor="let b of bookings" class="p-6 hover:bg-neutral-900/10 transition-all duration-200">
-            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              
-              <div class="space-y-2">
-                <div class="flex items-center gap-2">
-                  <span class="text-[10px] font-mono font-semibold tracking-widest text-white px-2 py-0.5 bg-neutral-900 border border-neutral-800 rounded">
-                    BOOKING ID: #{{ b.id }}
-                  </span>
-                  <span class="text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900/30 font-mono">
-                    {{ b.final_price | currency:'INR':'symbol':'1.0-0' }}
-                  </span>
-                </div>
-                
-                <h3 class="text-sm font-medium text-white pt-1">{{ b.service_name }}</h3>
-                <p class="text-[11px] text-neutral-300">
-                  <strong>Vehicle:</strong> {{ b.vehicle_make_model }} 
-                  <span class="text-neutral-500">({{ b.vehicle_category_name }})</span>
-                  <span *ngIf="b.vehicle_license_plate" class="text-neutral-500 font-mono ml-1">[{{ b.vehicle_license_plate }}]</span>
-                </p>
-                <p class="text-[11px] text-neutral-500">Requested Execution Target Date: {{ b.requested_date | date:'MMMM d, y' }}</p>
-
-                <div *ngIf="b.slot_start_time" class="p-3 bg-neutral-900/50 border border-neutral-800 rounded-xl space-y-1.5 mt-2 animate-fade-in">
-                  <p class="text-[11px] text-neutral-400 font-semibold uppercase tracking-wider">Assigned Appointment Window</p>
-                  <p class="text-xs text-neutral-300">
-                    <strong>Time block:</strong> {{ b.slot_date | date:'MMMM d, y' }} @ {{ b.slot_start_time.substring(0,5) }} - {{ b.slot_end_time.substring(0,5) }}
-                  </p>
-                  
-                  <div *ngIf="b.estimated_delivery_timeline" class="pt-1 flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
-                    <p class="text-xs text-blue-400 font-medium">
-                      Estimated Handover: <span class="text-neutral-300 font-normal">{{ b.estimated_delivery_timeline }}</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div *ngIf="!b.slot_start_time" class="pt-2 flex items-center gap-2">
-                  <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>
-                  <p class="text-xs text-neutral-500">Estimated Delivery: <span class="font-light italic">Awaiting Operator Assessment & Time Allocation</span></p>
-                </div>
-              </div>
-
-              <div class="flex items-center">
-                <span [ngClass]="{
-                  'bg-amber-950/40 text-amber-400 border-amber-900/50': b.status_ui_color === 'amber',
-                  'bg-blue-950/40 text-blue-400 border-blue-900/50': b.status_ui_color === 'blue',
-                  'bg-emerald-950/40 text-emerald-400 border-emerald-900/50': b.status_ui_color === 'emerald',
-                  'bg-neutral-900 text-neutral-500 border-neutral-800': b.status_ui_color === 'neutral'
-                }" class="text-[10px] px-3 py-1 rounded-full font-medium tracking-wider uppercase border text-center min-w-[100px]">
-                  {{ b.status_name }}
-                </span>
-              </div>
-              
-            </div>
-          </div>
-
-          <div *ngIf="bookings.length === 0" class="p-16 text-center text-xs text-neutral-500">
-            No history or pending requests logged yet. Use the intake menu to initialize your machine configuration.
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </main>
+  </ng-container>
 </div>

@@ -1,4 +1,3 @@
-# api/views.py
 from rest_framework import viewsets, permissions, generics, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -7,9 +6,18 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import get_user_model
 
-from .models import Service, AppointmentSlot, Booking, BookingLog, VehicleCategoryMaster, BookingStatusMaster, RoleMaster, ServicePriceMatrix
+from .models import (
+    Service, 
+    AppointmentSlot, 
+    Booking, 
+    BookingLog, 
+    VehicleCategoryMaster, 
+    BookingStatusMaster, 
+    RoleMaster, 
+    ServicePriceMatrix
+)
 from .serializers import (
-    ServiceMatrixSerializer, 
+    ServiceSerializer, 
     AppointmentSlotSerializer, 
     BookingSerializer, 
     VehicleCategoryMasterSerializer, 
@@ -23,14 +31,13 @@ from .permissions import IsAdminUserRole, IsAdminOrOffice, IsAdminOfficeOrReadOn
 User = get_user_model()
 
 # ==========================================
-# 1. AUTHENTICATION & IDENTITY VIEWS
+# 1. AUTHENTICATION VIEWS
 # ==========================================
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Pull role code directly from the master relationship
         token['role'] = user.role.code 
         return token
 
@@ -41,26 +48,29 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 class CustomTokenObtainPairView(TokenObtainPairView):
-    """Exposes custom JWT payload tokens matching your login interface routing"""
     serializer_class = CustomTokenObtainPairSerializer
 
 class RegisterView(generics.CreateAPIView):
-    """Handles new client registration requests across your web app forms"""
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
 
 
 # ==========================================
-# 2. DYNAMIC LOOKUP META ENDPOINTS
+# 2. MASTER REPOSITORIES & METADATA CRUD
 # ==========================================
+
+class VehicleCategoryViewSet(viewsets.ModelViewSet):
+    """Allows full CRUD operations on size/pricing category master records (Admin Only)"""
+    queryset = VehicleCategoryMaster.objects.all()
+    serializer_class = VehicleCategoryMasterSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminUserRole]
 
 class ConfigurationViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     @action(detail=False, methods=['get'])
     def meta_lookup(self, request):
-        """Feeds master list parameters direct to frontend form options dynamically"""
         categories = VehicleCategoryMaster.objects.all()
         statuses = BookingStatusMaster.objects.all()
         return Response({
@@ -70,35 +80,24 @@ class ConfigurationViewSet(viewsets.ViewSet):
 
 
 # ==========================================
-# 3. CORE MANAGEMENT CORE BUSINESS VIEWS
+# 3. WORKSHOP CORE BUSINESS WORKFLOW VIEWS
 # ==========================================
 
-class ServiceMatrixViewSet(viewsets.ModelViewSet):
-    queryset = Service.objects.prefetch_related('price_matrix').all()
-    serializer_class = ServiceMatrixSerializer
+class ServiceViewSet(viewsets.ModelViewSet):
+    """
+    Provides complete multi-role menu listing and unified administrative 
+    CRUD for treatment models along with tiered price parameters.
+    """
+    queryset = Service.objects.prefetch_related('prices').all()
+    serializer_class = ServiceSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOfficeOrReadOnly]
 
-    def get_permissions(self):
-        # Allow client roles to view services, but reserve changes for Admin/Office
-        if self.action in ['list', 'retrieve']:
-            permission_classes = [permissions.IsAuthenticated]
-        else:
-            permission_classes = [permissions.IsAuthenticated, IsAdminOrOffice]
-        return [permission() for permission in permission_classes]
-
-class VehicleCategoryMasterViewSet(viewsets.ModelViewSet):
-    queryset = VehicleCategoryMaster.objects.all()
-    serializer_class = VehicleCategoryMasterSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrOffice]
-
-class BookingStatusMasterViewSet(viewsets.ModelViewSet):
-    queryset = BookingStatusMaster.objects.all()
-    serializer_class = BookingStatusMasterSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrOffice]
 
 class AppointmentSlotViewSet(viewsets.ModelViewSet):
+    """Allows office staff and admin teams to freely create and manage schedule windows."""
     queryset = AppointmentSlot.objects.filter(is_active=True)
     serializer_class = AppointmentSlotSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOfficeOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrOffice]
 
 
 class BookingViewSet(viewsets.ModelViewSet):
@@ -159,7 +158,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
 
 # ==========================================
-# 4. CUSTOM MANAGEMENT CONSOLE APP ENDPOINTS
+# 4. CUSTOM HQ MANAGEMENT CONSOLE APP VIEW
 # ==========================================
 
 class AdminDashboardViewSet(viewsets.ViewSet):
