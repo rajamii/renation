@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -44,7 +44,8 @@ export class AdminComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -66,6 +67,7 @@ export class AdminComponent implements OnInit {
       .subscribe({
         next: (res: any) => {
           this.dropdownCategories = res.categories;
+          this.cdr.detectChanges();
         },
         error: (err) => console.error('Meta lookup initialization failed', err)
       });
@@ -116,7 +118,10 @@ export class AdminComponent implements OnInit {
   fetchUsers() {
     const roleMap = this.activeTab === 'clients' ? 'USER' : 'OFFICE';
     this.http.get(`http://localhost:8000/api/admin/users/?role=${roleMap}`, { headers: this.getHeaders() })
-      .subscribe((data: any) => this.users = data);
+      .subscribe((data: any) => {
+        this.users = data;
+        this.cdr.detectChanges();
+      });
   }
 
   createOfficeUser() {
@@ -131,7 +136,10 @@ export class AdminComponent implements OnInit {
 
   fetchServices() {
     this.http.get('http://localhost:8000/api/services/', { headers: this.getHeaders() })
-      .subscribe((data: any) => this.services = data);
+      .subscribe((data: any) => {
+        this.services = data;
+        this.cdr.detectChanges();
+      });
   }
 
   createServiceType() {
@@ -166,7 +174,10 @@ export class AdminComponent implements OnInit {
 
   fetchCategories() {
     this.http.get('http://localhost:8000/api/categories/', { headers: this.getHeaders() })
-      .subscribe((data: any) => this.categories = data);
+      .subscribe((data: any) => {
+        this.categories = data;
+        this.cdr.detectChanges();
+      });
   }
 
   createVehicleCategory() {
@@ -197,7 +208,10 @@ export class AdminComponent implements OnInit {
 
   fetchAuditLogs() {
     this.http.get('http://localhost:8000/api/admin/logs/', { headers: this.getHeaders() })
-      .subscribe((data: any) => this.logs = data);
+      .subscribe((data: any) => {
+        this.logs = data;
+        this.cdr.detectChanges();
+      });
   }
 
   logout() {

@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import * as QRCode from 'qrcode'; // Native import
 import { AuthService } from '../services/auth.service';
 import { AdminComponent } from '../admin/admin';
 import { OfficeComponent } from '../office/office';
@@ -16,7 +17,7 @@ import { environment } from '../../environments/environments';
 })
 export class DashboardComponent implements OnInit {
   private apiUrl = environment.apiUrl;
-  
+
   userRole: 'ADMIN' | 'OFFICE' | 'USER' | null = null;
   userEmail: string = '';
 
@@ -34,14 +35,19 @@ export class DashboardComponent implements OnInit {
     slot: '' // <-- Added slot property to the submission payload
   };
 
+  showQrModal = false;
+  selectedBookingId: string | null = null;
+  qrCodeDataUrl: string = '';
+
   successMessage = '';
   errorMessage = '';
 
   constructor(
     private authService: AuthService,
     private router: Router,
-    private http: HttpClient
-  ) {}
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef
+  ) { }
 
   ngOnInit() {
     const role = localStorage.getItem('role');
@@ -68,12 +74,18 @@ export class DashboardComponent implements OnInit {
     });
 
     this.http.get<any>(`${this.apiUrl}/config/meta_lookup/`, { headers }).subscribe({
-      next: (data) => { this.categoriesList = data.categories || []; },
+      next: (data) => {
+        this.categoriesList = data.categories || [];
+        this.cdr.detectChanges();
+      },
       error: (err) => console.error('Failed to load categories', err)
     });
 
     this.http.get<any[]>(`${this.apiUrl}/services/`, { headers }).subscribe({
-      next: (data) => { this.servicesList = data || []; },
+      next: (data) => {
+        this.servicesList = data || [];
+        this.cdr.detectChanges();
+      },
       error: (err) => console.error('Failed to load services', err)
     });
   }
@@ -93,6 +105,7 @@ export class DashboardComponent implements OnInit {
     this.http.get<any[]>(`${this.apiUrl}/slots/?date=${this.bookingForm.requested_date}`, { headers }).subscribe({
       next: (data) => {
         this.availableSlots = data || [];
+        this.cdr.detectChanges();
       },
       error: (err) => console.error('Failed to load slots for selected date', err)
     });
@@ -106,6 +119,7 @@ export class DashboardComponent implements OnInit {
     this.http.get<any[]>(`${this.apiUrl}/bookings/`, { headers }).subscribe({
       next: (data) => {
         this.userBookings = data || [];
+        this.cdr.detectChanges();
       },
       error: (err) => console.error('Failed to load user tracking bookings', err)
     });
@@ -138,6 +152,36 @@ export class DashboardComponent implements OnInit {
         this.errorMessage = err.error?.error || err.error?.[0] || 'Validation error occurred.';
       }
     });
+  }
+
+
+  openQrModal(booking: any) {
+    const qrTextPayload =
+      `Booking ID: #${booking.id}
+      Vehicle: ${booking.vehicle_make_model}
+      License Plate: ${booking.vehicle_license_plate}
+      Category: ${booking.vehicle_category}
+      Date: ${booking.requested_date}
+      Slot Reference: Slot #${booking.slot}`;
+
+    this.selectedBookingId = String(booking.id);
+    this.showQrModal = true;
+
+    QRCode.toDataURL(qrTextPayload, { width: 280, margin: 2 })
+      .then(url => {
+        this.qrCodeDataUrl = url;
+        this.cdr.detectChanges();
+      })
+      .catch(err => {
+        console.error('Error generating detailed QR code text payload', err);
+      });
+  }
+
+  closeQrModal() {
+    this.showQrModal = false;
+    this.selectedBookingId = null;
+    this.qrCodeDataUrl = '';
+    this.cdr.detectChanges();
   }
 
   logout() {

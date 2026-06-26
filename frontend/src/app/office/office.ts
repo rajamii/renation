@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -34,7 +34,8 @@ export class OfficeComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -49,17 +50,26 @@ export class OfficeComponent implements OnInit {
 
   fetchBookings() {
     this.http.get('http://localhost:8000/api/bookings/', { headers: this.getHeaders() })
-      .subscribe((data: any) => this.bookings = data);
+      .subscribe((data: any) => {
+        this.bookings = data;
+        this.cdr.detectChanges();
+      });
   }
 
   fetchSlots() {
     this.http.get('http://localhost:8000/api/slots/', { headers: this.getHeaders() })
-      .subscribe((data: any) => this.slots = data);
+      .subscribe((data: any) => {
+        this.slots = data;
+        this.cdr.detectChanges();
+      });
   }
 
   loadMetaLookups() {
     this.http.get('http://localhost:8000/api/config/meta_lookup/', { headers: this.getHeaders() })
-      .subscribe((res: any) => this.statuses = res.statuses);
+      .subscribe((res: any) => {
+        this.statuses = res.statuses;
+        this.cdr.detectChanges();
+      });
   }
 
   createSlot() {
