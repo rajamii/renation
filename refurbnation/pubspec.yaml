@@ -35,6 +35,7 @@ dependencies:
   provider: ^6.1.1             # For State Management
   intl: ^0.19.0                # For Date formatting
   qr_flutter: ^4.1.0
+  google_fonts: ^6.2.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
