@@ -7,7 +7,7 @@ import * as QRCode from 'qrcode'; // Native import
 import { AuthService } from '../services/auth.service';
 import { AdminComponent } from '../admin/admin';
 import { OfficeComponent } from '../office/office';
-import { environment } from '../../environments/environments';
+import { environment } from '../../environments/environment.prod';
 
 @Component({
   selector: 'app-dashboard',

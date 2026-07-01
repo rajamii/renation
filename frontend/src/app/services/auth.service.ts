@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs';
-import { environment } from '../../environments/environments';
+import { environment } from '../../environments/environment.prod';
 
 @Injectable({
   providedIn: 'root'
