@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; // Ensure you have google_fonts in pubspec.yaml
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
@@ -8,7 +8,8 @@ class AppTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.background,
       primaryColor: AppColors.primary,
-      fontFamily: GoogleFonts.inter().fontFamily, // Clean, minimal font
+      fontFamily: GoogleFonts.inter().fontFamily,
+
       // 1. App Bar Theme
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
@@ -17,12 +18,24 @@ class AppTheme {
         iconTheme: IconThemeData(color: AppColors.textPrimary),
         titleTextStyle: TextStyle(
           color: AppColors.textPrimary,
-          fontSize: 24,
+          fontSize: 22,
           fontWeight: FontWeight.bold,
+          letterSpacing: -0.5, // Slice uses tight, modern letter spacing
         ),
       ),
 
-      // 2. Button Themes (Every ElevatedButton will look like this globally)
+      // 2. Global Text Theme
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(color: AppColors.textPrimary, fontSize: 16),
+        bodyMedium: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        titleLarge: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+          letterSpacing: -0.5,
+        ),
+      ),
+
+      // 3. Button Themes (Neon pop on dark)
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -30,13 +43,26 @@ class AppTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(
+              16,
+            ), // Slice uses slightly rounded, squarish buttons
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
 
-      // 3. Text Field Themes (Inputs will look identical everywhere)
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textPrimary,
+          side: const BorderSide(color: AppColors.surfaceHighlight, width: 2),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+
+      // 4. Input Themes
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
@@ -52,18 +78,34 @@ class AppTheme {
         ),
       ),
 
-      // 4. Card Theme
-      // cardTheme: CardTheme(
-      //   color: AppColors.surface,
-      //   elevation: 0,
-      //   shape: RoundedRectangleBorder(
-      //     borderRadius: BorderRadius.circular(24),
-      //     side: const BorderSide(
-      //       color: Colors.white10,
-      //       width: 1,
-      //     ), // Subtle border for depth
-      //   ),
-      // ),
+      // 5. Card Theme (For list items like services)
+      cardTheme: CardThemeData(
+        color: AppColors.surface,
+        elevation: 0,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.surfaceHighlight, width: 1.5),
+        ),
+      ),
+
+      // 6. Bottom Navigation Bar Theme
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        selectedItemColor: AppColors.primary, // Neon highlight for selected tab
+        unselectedItemColor: AppColors.textSecondary,
+        type: BottomNavigationBarType.fixed,
+        showUnselectedLabels: true,
+        selectedLabelStyle: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }

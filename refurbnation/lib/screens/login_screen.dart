@@ -1,131 +1,126 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import 'dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
-  LoginScreenState createState() => LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
+class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _nameController = TextEditingController(); // Only used for signup
-
-  bool _isLogin = true; // Toggle state
   bool _isLoading = false;
 
-  void _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    bool success = false;
-
-    if (_isLogin) {
-      success = await authProvider.login(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
-    } else {
-      success = await authProvider.signup(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all fields.')));
+      return;
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = true);
 
-    if (success) {
-      if (_isLogin) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signup successful! Please log in.')),
-        );
-        setState(() {
-          _isLogin = true; // Switch back to login mode
-        });
-      }
-    } else {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    bool success = await authProvider.login(email, password);
+
+    setState(() => _isLoading = false);
+
+    if (success && mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${_isLogin ? 'Login' : 'Signup'} Failed')),
+        const SnackBar(
+          content: Text('Login failed. Check your network or credentials.'),
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Accessing theme colors
-    final theme = Theme.of(context);
-
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  _isLogin ? 'Welcome Back' : 'Create an Account',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.primaryColor,
-                  ),
-                  textAlign: TextAlign.center,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Spacer(),
+
+              // App Brand Header
+              Text(
+                'refurbnation.',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.5,
+                  color: Theme.of(
+                    context,
+                  ).primaryColor, // Accent pop on the brand
                 ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Log in to manage your workshop assets.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontSize: 16),
+              ),
 
-                const SizedBox(height: 32),
+              const SizedBox(height: 48),
 
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email Address'),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) =>
-                      value!.isEmpty ? 'Please enter your email' : null,
+              // Email Input
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  hintText: 'Enter email address',
+                  prefixIcon: Icon(Icons.alternate_email, size: 20),
                 ),
-                const SizedBox(height: 16),
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
 
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
-                  obscureText: true,
-                  validator: (value) =>
-                      value!.isEmpty ? 'Please enter your password' : null,
+              // Password Input
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  hintText: 'Enter password',
+                  prefixIcon: Icon(Icons.lock_outline, size: 20),
                 ),
-                const SizedBox(height: 24),
+                style: const TextStyle(fontSize: 16),
+              ),
 
-                _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : ElevatedButton(
-                        onPressed: _submit,
-                        child: Text(_isLogin ? 'LOGIN' : 'SIGN UP'),
-                      ),
-                const SizedBox(height: 16),
+              const Spacer(flex: 2),
 
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _isLogin = !_isLogin;
-                    });
-                  },
-                  child: Text(
-                    _isLogin
-                        ? "Don't have an account? Sign up"
-                        : "Already have an account? Log in",
-                  ),
-                ),
-              ],
-            ),
+              // Neon Action Button
+              ElevatedButton(
+                onPressed: _isLoading ? null : _handleLogin,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.black,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : const Text('Continue'),
+              ),
+              const SizedBox(height: 16),
+            ],
           ),
         ),
       ),

@@ -14,8 +14,12 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // Exclude auth routes from needing a token
-          if (!options.path.contains('/auth/')) {
+          bool isPublicRoute =
+              options.path.contains('/auth/login/') ||
+              options.path.contains('/auth/register/') ||
+              options.path.contains('/auth/refresh/');
+
+          if (!isPublicRoute) {
             String? accessToken = await storage.read(key: 'access_token');
             if (accessToken != null) {
               options.headers['Authorization'] = 'Bearer $accessToken';
@@ -25,10 +29,8 @@ class ApiClient {
         },
         onError: (DioException e, handler) async {
           if (e.response?.statusCode == 401) {
-            // Token expired, attempt refresh
             bool refreshed = await _refreshToken();
             if (refreshed) {
-              // Retry the original request with the new token
               String? newAccessToken = await storage.read(key: 'access_token');
               e.requestOptions.headers['Authorization'] =
                   'Bearer $newAccessToken';
@@ -47,7 +49,6 @@ class ApiClient {
       String? refreshToken = await storage.read(key: 'refresh_token');
       if (refreshToken == null) return false;
 
-      // Hitting your custom TokenRefreshView
       final response = await Dio().post(
         '$baseUrl/auth/refresh/',
         data: {'refresh': refreshToken},
@@ -56,7 +57,6 @@ class ApiClient {
       await storage.write(key: 'access_token', value: response.data['access']);
       return true;
     } catch (e) {
-      // Refresh failed (e.g., refresh token also expired). User must log in again.
       await storage.deleteAll();
       return false;
     }

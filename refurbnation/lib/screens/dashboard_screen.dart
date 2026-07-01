@@ -41,78 +41,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildBookServiceTab() {
     if (_isLoadingServices) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
+      return Center(
+        child: CircularProgressIndicator(color: Theme.of(context).primaryColor),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: _services.length,
       itemBuilder: (context, index) {
         final service = _services[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF171717),
-            border: Border.all(color: const Color(0xFF262626)),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      service.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
+        // Using the global CardTheme now
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        service.name,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleLarge?.copyWith(fontSize: 18),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      service.description,
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "⏱️ ${service.duration} hours",
-                      style: const TextStyle(color: Colors.amber, fontSize: 11),
-                    ),
-                  ],
+                      const SizedBox(height: 6),
+                      Text(
+                        service.description,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "⏱️ ${service.duration} hrs",
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
+                const SizedBox(width: 16),
+                // Notice we removed all custom styling. It will automatically be neon green!
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (ctx) => BookingScreen(service: service),
+                      ),
+                    );
+                  },
+                  child: const Text('Book'),
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (ctx) => BookingScreen(service: service),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Book',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  // NEW TAB UI View: Profile Details and Save Actions
   Widget _buildProfileTab() {
     final authProvider = Provider.of<AuthProvider>(context);
     final firstNameController = TextEditingController(
@@ -127,50 +132,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(
+          Center(
             child: CircleAvatar(
-              radius: 40,
-              backgroundColor: Color(0xFF262626),
-              child: Icon(Icons.person, size: 40, color: Colors.white),
+              radius: 48,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              child: const Icon(Icons.person, size: 48, color: Colors.white),
             ),
           ),
           const SizedBox(height: 12),
           Center(
             child: Text(
               authProvider.email,
-              style: const TextStyle(color: Colors.grey, fontSize: 14),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
           TextField(
             controller: firstNameController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: 'First Name',
-              labelStyle: TextStyle(color: Colors.grey),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF262626)),
-              ),
-            ),
+            decoration: const InputDecoration(labelText: 'First Name'),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: lastNameController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: 'Last Name',
-              labelStyle: TextStyle(color: Colors.grey),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF262626)),
-              ),
-            ),
+            decoration: const InputDecoration(labelText: 'Last Name'),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-            ),
             onPressed: () async {
               bool success = await authProvider.updateUserProfile(
                 firstNameController.text.trim(),
@@ -184,20 +171,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               }
             },
-            child: const Text('Save Profile Changes'),
+            child: const Text('Save Changes'),
           ),
           const SizedBox(height: 16),
-          // LOGOUT ACTION BUTTON
+          // Using global OutlinedButton theme, overriding just the border color for destructive action
           OutlinedButton(
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.redAccent),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              side: const BorderSide(color: Colors.redAccent, width: 2),
             ),
             onPressed: () async {
               await authProvider.logout();
             },
             child: const Text(
-              'Logout Account',
+              'Logout',
               style: TextStyle(
                 color: Colors.redAccent,
                 fontWeight: FontWeight.bold,
@@ -213,46 +199,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final List<Widget> tabsList = [
       _buildBookServiceTab(),
-      const MyBookingsTab(),
-      _buildProfileTab(), // Added View index 2
+      const MyBookingsTab(), // Ensure this tab is also stripped of hardcoded colors
+      _buildProfileTab(),
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      // Scaffold color is automatically inherited from AppTheme
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0A0A),
-        elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _currentTabIndex == 0
-                  ? "Workshop Treatment Menu"
-                  : _currentTabIndex == 1
-                  ? "Appointments Pipeline"
-                  : "Account Settings",
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Text(
-              "RefurbNation Client Console",
-              style: TextStyle(color: Colors.grey, fontSize: 11),
-            ),
-          ],
+        title: Text(
+          _currentTabIndex == 0
+              ? "Workshop Menu"
+              : _currentTabIndex == 1
+              ? "Pipeline"
+              : "Account",
         ),
       ),
       body: tabsList[_currentTabIndex],
+      // BottomNav uses the global theme now
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentTabIndex,
-        backgroundColor: const Color(0xFF171717),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.grey,
-        selectedFontSize: 11,
-        unselectedFontSize: 11,
-        type: BottomNavigationBarType.fixed,
         onTap: (index) {
           setState(() {
             _currentTabIndex = index;
@@ -262,12 +227,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.build_circle_outlined),
             activeIcon: Icon(Icons.build_circle),
-            label: 'Book Service',
+            label: 'Book',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment_outlined),
             activeIcon: Icon(Icons.assignment),
-            label: 'My Bookings',
+            label: 'Bookings',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

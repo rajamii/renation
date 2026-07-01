@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:jwt_decoder/jwt_decoder.dart'; // 🟢 Make sure jwt_decoder is imported
 import '../services/api_client.dart';
 
 class AuthProvider with ChangeNotifier {
@@ -9,11 +10,13 @@ class AuthProvider with ChangeNotifier {
   String? userRole;
 
   // Profile state properties
+  int? _userId;
   String _firstName = '';
   String _lastName = '';
   String _email = '';
 
   bool get isAuthenticated => _isAuthenticated;
+  int? get userId => _userId;
   String get firstName => _firstName;
   String get lastName => _lastName;
   String get email => _email;
@@ -33,10 +36,8 @@ class AuthProvider with ChangeNotifier {
           return false;
         }
 
-        await storage.write(
-          key: 'access_token',
-          value: response.data['access'],
-        );
+        final String accessToken = response.data['access'];
+        await storage.write(key: 'access_token', value: accessToken);
         await storage.write(
           key: 'refresh_token',
           value: response.data['refresh'],
@@ -61,6 +62,17 @@ class AuthProvider with ChangeNotifier {
   // Fetch Profile details from your custom user backend
   Future<void> fetchUserProfile() async {
     try {
+      // 🟢 1. Read the access token from secure storage
+      String? accessToken = await storage.read(key: 'access_token');
+
+      if (accessToken != null) {
+        // 🟢 2. Decode it and parse the user_id safely string -> int
+        Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
+        if (decodedToken['user_id'] != null) {
+          _userId = int.parse(decodedToken['user_id'].toString());
+        }
+      }
+
       final response = await _apiClient.dio.get('/auth/profile/');
       if (response.statusCode == 200) {
         _firstName = response.data['first_name'] ?? '';
@@ -94,7 +106,6 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Add this inside your AuthProvider class
   Future<bool> signup(String email, String password) async {
     try {
       final response = await _apiClient.dio.post(
@@ -103,7 +114,6 @@ class AuthProvider with ChangeNotifier {
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        // Optionally auto-login after signup, or just return true to redirect to login
         return true;
       }
       return false;
@@ -113,11 +123,11 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Clear storage and update state so main.dart redirects to Login Screen
   Future<void> logout() async {
     await storage.deleteAll();
     _isAuthenticated = false;
     userRole = null;
+    _userId = null;
     _firstName = '';
     _lastName = '';
     _email = '';
