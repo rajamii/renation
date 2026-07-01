@@ -1,0 +1,23 @@
+name: Sync to Renation
+
+on:
+  push:
+    branches:
+      - main  # Adjust this if your primary branch is called 'master'
+
+jobs:
+  git-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to Renation Mirror
+        uses: repo-sync/github-sync@v2
+        with:
+          source_repo: "rajamii/refurbnation"
+          destination_repo: "rajamii/renation"
+          destination_branch: "main" # The branch Vercel is watching on renation
+          github_token: ${{ secrets.SYNC_TOKEN }}
