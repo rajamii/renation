@@ -5,7 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiClient {
   static const String baseUrl = kIsWeb
       ? 'http://localhost:8000/api'
-      : 'http://10.0.2.2:8000/api';
+      : 'https://refurbnation.onrender.com/api';
 
   final Dio dio = Dio(BaseOptions(baseUrl: baseUrl));
   final storage = const FlutterSecureStorage();

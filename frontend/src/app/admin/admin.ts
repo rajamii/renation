@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { environment } from '../../environments/environment.prod';
 
 @Component({
   selector: 'app-admin',
@@ -63,7 +64,7 @@ export class AdminComponent implements OnInit {
   }
 
   loadMasterCategories() {
-    this.http.get('http://localhost:8000/api/config/meta_lookup/', { headers: this.getHeaders() })
+    this.http.get(`${environment.apiUrl}/api/config/meta_lookup/`, { headers: this.getHeaders() })
       .subscribe({
         next: (res: any) => {
           this.dropdownCategories = res.categories;
@@ -117,7 +118,7 @@ export class AdminComponent implements OnInit {
 
   fetchUsers() {
     const roleMap = this.activeTab === 'clients' ? 'USER' : 'OFFICE';
-    this.http.get(`http://localhost:8000/api/admin/users/?role=${roleMap}`, { headers: this.getHeaders() })
+    this.http.get(`${environment.apiUrl}/api/admin/users/?role=${roleMap}`, { headers: this.getHeaders() })
       .subscribe((data: any) => {
         this.users = data;
         this.cdr.detectChanges();
@@ -126,7 +127,7 @@ export class AdminComponent implements OnInit {
 
   createOfficeUser() {
     const payload = { email: this.newOfficeEmail, password: this.newOfficePassword };
-    this.http.post('http://localhost:8000/api/admin/users/office/', payload, { headers: this.getHeaders() })
+    this.http.post(`${environment.apiUrl}/api/admin/users/office/`, payload, { headers: this.getHeaders() })
       .subscribe(() => {
         this.fetchUsers();
         this.newOfficeEmail = '';
@@ -135,7 +136,7 @@ export class AdminComponent implements OnInit {
   }
 
   fetchServices() {
-    this.http.get('http://localhost:8000/api/services/', { headers: this.getHeaders() })
+    this.http.get(`${environment.apiUrl}/api/services/`, { headers: this.getHeaders() })
       .subscribe((data: any) => {
         this.services = data;
         this.cdr.detectChanges();
@@ -152,7 +153,7 @@ export class AdminComponent implements OnInit {
       prices: this.stagedPrices // Sends the complete matrix map parameters built inside the form
     };
 
-    this.http.post('http://localhost:8000/api/services/', payload, { headers: this.getHeaders() })
+    this.http.post(`${environment.apiUrl}/api/services/`, payload, { headers: this.getHeaders() })
       .subscribe({
         next: () => {
           this.fetchServices();
@@ -168,12 +169,12 @@ export class AdminComponent implements OnInit {
 
   deleteService(serviceId: number) {
     if (!confirm('Are you sure you want to completely delete this service element?')) return;
-    this.http.delete(`http://localhost:8000/api/services/${serviceId}/`, { headers: this.getHeaders() })
+    this.http.delete(`${environment.apiUrl}/api/services/${serviceId}/`, { headers: this.getHeaders() })
       .subscribe(() => this.fetchServices());
   }
 
   fetchCategories() {
-    this.http.get('http://localhost:8000/api/categories/', { headers: this.getHeaders() })
+    this.http.get(`${environment.apiUrl}/api/categories/`, { headers: this.getHeaders() })
       .subscribe((data: any) => {
         this.categories = data;
         this.cdr.detectChanges();
@@ -188,7 +189,7 @@ export class AdminComponent implements OnInit {
       name: this.newCategoryName
     };
 
-    this.http.post('http://localhost:8000/api/categories/', payload, { headers: this.getHeaders() })
+    this.http.post(`${environment.apiUrl}/api/categories/`, payload, { headers: this.getHeaders() })
       .subscribe(() => {
         this.fetchCategories();
         this.loadMasterCategories();
@@ -199,7 +200,7 @@ export class AdminComponent implements OnInit {
 
   deleteVehicleCategory(code: string) {
     if (!confirm(`Are you sure you want to delete vehicle category: ${code}?`)) return;
-    this.http.delete(`http://localhost:8000/api/categories/${code}/`, { headers: this.getHeaders() })
+    this.http.delete(`${environment.apiUrl}/api/categories/${code}/`, { headers: this.getHeaders() })
       .subscribe(() => {
         this.fetchCategories();
         this.loadMasterCategories();
@@ -207,7 +208,7 @@ export class AdminComponent implements OnInit {
   }
 
   fetchAuditLogs() {
-    this.http.get('http://localhost:8000/api/admin/logs/', { headers: this.getHeaders() })
+    this.http.get(`${environment.apiUrl}/api/admin/logs/`, { headers: this.getHeaders() })
       .subscribe((data: any) => {
         this.logs = data;
         this.cdr.detectChanges();

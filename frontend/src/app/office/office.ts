@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { environment } from '../../environments/environment.prod';
 
 @Component({
   selector: 'app-office',
@@ -49,7 +50,7 @@ export class OfficeComponent implements OnInit {
   }
 
   fetchBookings() {
-    this.http.get('http://localhost:8000/api/bookings/', { headers: this.getHeaders() })
+    this.http.get(`${environment.apiUrl}/api/bookings/`, { headers: this.getHeaders() })
       .subscribe((data: any) => {
         this.bookings = data;
         this.cdr.detectChanges();
@@ -57,7 +58,7 @@ export class OfficeComponent implements OnInit {
   }
 
   fetchSlots() {
-    this.http.get('http://localhost:8000/api/slots/', { headers: this.getHeaders() })
+    this.http.get(`${environment.apiUrl}/api/slots/`, { headers: this.getHeaders() })
       .subscribe((data: any) => {
         this.slots = data;
         this.cdr.detectChanges();
@@ -65,7 +66,7 @@ export class OfficeComponent implements OnInit {
   }
 
   loadMetaLookups() {
-    this.http.get('http://localhost:8000/api/config/meta_lookup/', { headers: this.getHeaders() })
+    this.http.get(`${environment.apiUrl}/api/config/meta_lookup/`, { headers: this.getHeaders() })
       .subscribe((res: any) => {
         this.statuses = res.statuses;
         this.cdr.detectChanges();
@@ -84,7 +85,7 @@ export class OfficeComponent implements OnInit {
       is_active: true
     };
 
-    this.http.post('http://localhost:8000/api/slots/', payload, { headers: this.getHeaders() })
+    this.http.post(`${environment.apiUrl}/api/slots/`, payload, { headers: this.getHeaders() })
       .subscribe({
         next: () => {
           this.fetchSlots();
@@ -115,7 +116,7 @@ export class OfficeComponent implements OnInit {
       slot: this.updatingSlotId
     };
 
-    this.http.patch(`http://localhost:8000/api/bookings/${this.selectedBooking.id}/update_status/`, payload, { headers: this.getHeaders() })
+    this.http.patch(`${environment.apiUrl}/api/bookings/${this.selectedBooking.id}/update_status/`, payload, { headers: this.getHeaders() })
       .subscribe({
         next: () => {
           this.fetchBookings();
