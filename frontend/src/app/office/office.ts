@@ -50,7 +50,7 @@ export class OfficeComponent implements OnInit {
   }
 
   fetchBookings() {
-    this.http.get(`${environment.apiUrl}/api/bookings/`, { headers: this.getHeaders() })
+    this.http.get(`${environment.apiUrl}/bookings/`, { headers: this.getHeaders() })
       .subscribe((data: any) => {
         this.bookings = data;
         this.cdr.detectChanges();
@@ -58,7 +58,7 @@ export class OfficeComponent implements OnInit {
   }
 
   fetchSlots() {
-    this.http.get(`${environment.apiUrl}/api/slots/`, { headers: this.getHeaders() })
+    this.http.get(`${environment.apiUrl}/slots/`, { headers: this.getHeaders() })
       .subscribe((data: any) => {
         this.slots = data;
         this.cdr.detectChanges();
@@ -66,7 +66,7 @@ export class OfficeComponent implements OnInit {
   }
 
   loadMetaLookups() {
-    this.http.get(`${environment.apiUrl}/api/config/meta_lookup/`, { headers: this.getHeaders() })
+    this.http.get(`${environment.apiUrl}/config/meta_lookup/`, { headers: this.getHeaders() })
       .subscribe((res: any) => {
         this.statuses = res.statuses;
         this.cdr.detectChanges();
@@ -85,7 +85,7 @@ export class OfficeComponent implements OnInit {
       is_active: true
     };
 
-    this.http.post(`${environment.apiUrl}/api/slots/`, payload, { headers: this.getHeaders() })
+    this.http.post(`${environment.apiUrl}/slots/`, payload, { headers: this.getHeaders() })
       .subscribe({
         next: () => {
           this.fetchSlots();
@@ -116,7 +116,7 @@ export class OfficeComponent implements OnInit {
       slot: this.updatingSlotId
     };
 
-    this.http.patch(`${environment.apiUrl}/api/bookings/${this.selectedBooking.id}/update_status/`, payload, { headers: this.getHeaders() })
+    this.http.patch(`${environment.apiUrl}/bookings/${this.selectedBooking.id}/update_status/`, payload, { headers: this.getHeaders() })
       .subscribe({
         next: () => {
           this.fetchBookings();
