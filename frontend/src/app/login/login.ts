@@ -17,6 +17,7 @@ export class LoginComponent {
   // Form input bindings
   email = '';
   password = '';
+  referralCode = '';
 
   constructor(
     private authService: AuthService, 
@@ -40,11 +41,12 @@ export class LoginComponent {
       });
     } else {
       // Execute signup/registration sequence
-      this.authService.register(credentials).subscribe({
+      this.authService.register({ ...credentials, referralCode: this.referralCode }).subscribe({
         next: () => {
           // Switch to login view smoothly upon successful registration
           this.isLogin = true;
           this.password = '';
+          this.referralCode = '';
         },
         error: (err) => console.error('Registration failed', err)
       });

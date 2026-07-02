@@ -7,7 +7,10 @@ from .models import (
     Booking, 
     BookingLog, 
     VehicleCategoryMaster, 
-    BookingStatusMaster
+    BookingStatusMaster,
+    UnlockedDiscount,
+    Referral,
+    UserProfile,
 )
 
 User = get_user_model()
@@ -22,18 +25,38 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'role_id']
 
 class RegisterSerializer(serializers.ModelSerializer):
+    referral_code = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
+
     class Meta:
         model = User
-        fields = ['email', 'password']
+        fields = ['email', 'password', 'referral_code']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        
+        referral_code = validated_data.pop('referral_code', None)
+        
+        user = User.objects.create_user(**validated_data)
+        
+        UserProfile.objects.create(user=user)
+
+        if referral_code:
+            try:
+                parent_profile = UserProfile.objects.get(referral_code=referral_code)
+                Referral.objects.create(
+                    referrer=parent_profile.user,
+                    referee=user,
+                    status='signed_up'
+                )
+            except UserProfile.DoesNotExist:
+                pass
+
+        return user
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name']
+        fields = ['email', 'first_name', 'last_name', 'referral_code']
         read_only_fields = ['email']
 
 # ==========================================
@@ -120,3 +143,20 @@ class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = '__all__'
+
+# ==========================================
+# REFERRAL & LOYALTY SERIALIZERS
+# ==========================================
+
+class UnlockedDiscountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UnlockedDiscount
+        fields = ['referral_type', 'milestone_count', 'discount_percentage', 'is_used', 'unlocked_at']
+
+class RewardSummarySerializer(serializers.Serializer):
+    referral_code = serializers.CharField()
+    direct_referrals_count = serializers.IntegerField()
+    indirect_referrals_count = serializers.IntegerField()
+    yearly_bookings_count = serializers.IntegerField()
+    unlocked_discounts = UnlockedDiscountSerializer(many=True)
+    loyalty_milestones_unlocked = serializers.IntegerField()

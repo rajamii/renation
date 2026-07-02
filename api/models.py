@@ -1,5 +1,8 @@
+import uuid
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from django.utils import timezone
+from .utils import generate_referral_code
 
 # ==========================================
 # 1. DATABASE CONFIGURATION MASTER TABLES
@@ -73,6 +76,11 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.email} ({self.role_id})"
 
+    
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    referral_code = models.CharField(max_length=10, unique=True, default=generate_referral_code)
+
 # ==========================================
 # 3. WORKSHOP SCHEDULING & PRICE MODELS
 # ==========================================
@@ -142,3 +150,53 @@ class BookingLog(models.Model):
 
     class Meta:
         ordering = ['-timestamp']
+
+ # ==========================================
+ # 4. REFERRAL & LOYALTY MODELS
+ # ==========================================       
+
+class Referral(models.Model):
+    STATUS_CHOICES = [
+        ('signed_up', 'Signed Up'),
+        ('booking_completed', 'Booking Completed'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    referrer = models.ForeignKey(User, related_name='referrals_sent', on_delete=models.CASCADE)
+    referee = models.OneToOneField(User, related_name='referral_received', on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='signed_up')
+    booking_id = models.CharField(max_length=100, null=True, blank=True) # First booking ID
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.referrer.username} -> {self.referee.username} ({self.status})"
+
+
+class UnlockedDiscount(models.Model):
+    TYPE_CHOICES = [
+        ('direct', 'Direct Referral Reward'),
+        ('indirect', 'Indirect Referral Reward'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, related_name='unlocked_discounts', on_delete=models.CASCADE)
+    referral_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    milestone_count = models.IntegerField()  # 3, 5 for direct | 10, 25, 50 for indirect
+    discount_percentage = models.IntegerField()  # 10, 20, 30
+    is_used = models.BooleanField(default=False)
+    unlocked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'referral_type', 'milestone_count')
+
+
+class LoyaltyMilestone(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, related_name='loyalty_milestones', on_delete=models.CASCADE)
+    year = models.IntegerField(default=timezone.now().year)
+    milestone_tier = models.IntegerField(default=10)  # 10 bookings milestone
+    coupon_code = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'year', 'milestone_tier')       

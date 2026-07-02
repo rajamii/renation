@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import * as QRCode from 'qrcode'; // Native import
+import * as QRCode from 'qrcode';
 import { AuthService } from '../services/auth.service';
 import { AdminComponent } from '../admin/admin';
 import { OfficeComponent } from '../office/office';
-import { environment } from '../../environments/environment.prod';
+import { environment } from '../../environments/environments';
+import { RewardSummary } from '../shared/rewards.model';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-dashboard',
@@ -18,13 +20,15 @@ import { environment } from '../../environments/environment.prod';
 export class DashboardComponent implements OnInit {
   private apiUrl = environment.apiUrl;
 
+  rewardSummary: RewardSummary | null = null;
+  isLoading = true;
   userRole: 'ADMIN' | 'OFFICE' | 'USER' | null = null;
   userEmail: string = '';
 
   servicesList: any[] = [];
   categoriesList: any[] = [];
   userBookings: any[] = [];
-  availableSlots: any[] = []; // <-- Holds the slots filtered by date
+  availableSlots: any[] = [];
 
   bookingForm = {
     service: '',
@@ -32,8 +36,11 @@ export class DashboardComponent implements OnInit {
     vehicle_make_model: '',
     vehicle_license_plate: '',
     requested_date: '',
-    slot: '' // <-- Added slot property to the submission payload
+    slot: ''
   };
+
+  selectedDiscountId: string | null = null;
+  selectedDiscountPercentage: number = 0;
 
   showQrModal = false;
   selectedBookingId: string | null = null;
@@ -65,6 +72,7 @@ export class DashboardComponent implements OnInit {
     if (this.userRole === 'USER') {
       this.loadFormMetadata();
       this.loadUserBookings();
+      this.fetchRewards();
     }
   }
 
@@ -88,6 +96,39 @@ export class DashboardComponent implements OnInit {
       },
       error: (err) => console.error('Failed to load services', err)
     });
+  }
+
+  getRewardSummary(): Observable<RewardSummary> {
+    return this.http.get<RewardSummary>(`${this.apiUrl}/rewards/summary/`, {
+      headers: new HttpHeaders({
+        'Authorization': `Bearer ${localStorage.getItem('access')}`
+      })
+    });
+  }
+
+  fetchRewards(): void {
+    this.getRewardSummary().subscribe({
+      next: (data) => {
+        this.rewardSummary = data;
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Failed to load rewards', err);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  toggleDiscount(discount: any): void {
+    if (this.selectedDiscountId === discount.id) {
+      // If clicking the already selected discount, unselect it
+      this.selectedDiscountId = null;
+      this.selectedDiscountPercentage = 0;
+    } else {
+      // Select the new discount
+      this.selectedDiscountId = discount.id;
+      this.selectedDiscountPercentage = discount.discount_percentage;
+    }
   }
 
   // Listens for date changes to query slots from the backend matching that day
@@ -152,6 +193,25 @@ export class DashboardComponent implements OnInit {
         this.errorMessage = err.error?.error || err.error?.[0] || 'Validation error occurred.';
       }
     });
+  }
+
+  // Helper methods to calculate progress bar percentages (capped at 100%)
+  getDirectProgress(): number {
+    if (!this.rewardSummary) return 0;
+    // Max milestone for direct is 5
+    return Math.min((this.rewardSummary.direct_referrals_count / 5) * 100, 100);
+  }
+
+  getIndirectProgress(): number {
+    if (!this.rewardSummary) return 0;
+    // Max milestone for indirect is 50
+    return Math.min((this.rewardSummary.indirect_referrals_count / 50) * 100, 100);
+  }
+
+  getLoyaltyProgress(): number {
+    if (!this.rewardSummary) return 0;
+    // Loyalty milestone is 10 bookings
+    return Math.min((this.rewardSummary.yearly_bookings_count / 10) * 100, 100);
   }
 
 

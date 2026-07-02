@@ -9,7 +9,9 @@ from .views import (
     VehicleCategoryViewSet,
     RegisterView,
     CustomTokenObtainPairView,
-    UserProfileView
+    UserProfileView,
+    ApplyDiscountView,
+    RewardDashboardView
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -30,9 +32,10 @@ router.register(r'admin', AdminDashboardViewSet, basename='admin-dashboard')
 urlpatterns = [
     path('', include(router.urls)),
     
-    # Token Security Gateway Core Mappings
     path('auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/register/', RegisterView.as_view(), name='auth_register'),
     path('auth/profile/', UserProfileView.as_view(), name='auth_profile'),
+    path('rewards/dashboard/', RewardDashboardView.as_view(), name='rewards-dashboard'),
+    path('rewards/apply-discount/', ApplyDiscountView.as_view(), name='apply-discount'),
 ]

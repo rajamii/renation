@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { environment } from '../../environments/environment.prod';
+import { environment } from '../../environments/environments';
 
 @Component({
   selector: 'app-admin',

@@ -22,6 +22,13 @@
           class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-700 focus:ring-1 focus:ring-neutral-700 transition-all">
       </div>
 
+      <!-- NEW: Referral Code (Only visible during registration) -->
+      <div *ngIf="!isLogin">
+        <label class="block text-[11px] uppercase tracking-wider font-medium text-neutral-400 mb-1.5">Referral Code (Optional)</label>
+        <input [(ngModel)]="referralCode" name="referralCode" type="text" placeholder="e.g. MYCODE123"
+          class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 uppercase focus:outline-none focus:border-neutral-700 focus:ring-1 focus:ring-neutral-700 transition-all">
+      </div>
+
       <button type="submit" 
         class="w-full bg-white text-black text-sm font-medium py-3 rounded-xl hover:bg-neutral-200 transition-all duration-200 mt-6 shadow-sm">
         {{ isLogin ? 'Continue' : 'Register' }}

@@ -25,6 +25,85 @@
         {{ errorMessage }}
       </div>
 
+      <!-- NEW: REWARDS & PROGRESS SECTION -->
+      <div *ngIf="rewardSummary" class="mb-8 bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl">
+        <div class="mb-6 flex justify-between items-end">
+          <div>
+            <h2 class="text-base font-medium text-white">My Rewards & Progress</h2>
+            <p class="text-xs text-neutral-400">Track your network and yearly loyalty milestones.</p>
+          </div>
+          <div class="text-xs text-neutral-500 font-mono">
+            Your Code: <span class="text-white font-bold bg-neutral-950 px-2 py-1 rounded border border-neutral-800">{{ rewardSummary.referral_code }}</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Direct Referrals Card -->
+          <div class="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-neutral-200 mb-1">Direct Referrals</h3>
+            <p class="text-[11px] text-neutral-500 mb-4">Invite friends to unlock up to 30% off.</p>
+            
+            <div class="flex justify-between text-xs font-medium text-neutral-300 mb-1.5">
+              <span>{{ rewardSummary.direct_referrals_count }} / 5 Booked</span>
+              <span>{{ getDirectProgress() | number:'1.0-0' }}%</span>
+            </div>
+            <div class="w-full bg-neutral-800 rounded-full h-1.5 mb-2">
+              <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" [style.width.%]="getDirectProgress()"></div>
+            </div>
+            <p class="text-[10px] text-neutral-500">Milestones: 3 (20% off), 5 (30% off)</p>
+          </div>
+
+          <!-- Indirect Referrals Card -->
+          <div class="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-neutral-200 mb-1">Network Referrals</h3>
+            <p class="text-[11px] text-neutral-500 mb-4">Earn when your friends invite others.</p>
+            
+            <div class="flex justify-between text-xs font-medium text-neutral-300 mb-1.5">
+              <span>{{ rewardSummary.indirect_referrals_count }} / 50 Booked</span>
+              <span>{{ getIndirectProgress() | number:'1.0-0' }}%</span>
+            </div>
+            <div class="w-full bg-neutral-800 rounded-full h-1.5 mb-2">
+              <div class="bg-purple-500 h-1.5 rounded-full transition-all duration-500" [style.width.%]="getIndirectProgress()"></div>
+            </div>
+            <p class="text-[10px] text-neutral-500">Milestones: 10, 25, 50 network bookings</p>
+          </div>
+
+          <!-- Loyalty / Yearly Bookings Card -->
+          <div class="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-neutral-200 mb-1">Yearly Loyalty</h3>
+            <p class="text-[11px] text-neutral-500 mb-4">Book 10 times this year for a free reward.</p>
+            
+            <div class="flex justify-between text-xs font-medium text-neutral-300 mb-1.5">
+              <span>{{ rewardSummary.yearly_bookings_count }} / 10 Visits</span>
+              <span>{{ getLoyaltyProgress() | number:'1.0-0' }}%</span>
+            </div>
+            <div class="w-full bg-neutral-800 rounded-full h-1.5 mb-2">
+              <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" [style.width.%]="getLoyaltyProgress()"></div>
+            </div>
+            <p class="text-[10px] text-neutral-500">Resets annually on January 1st</p>
+          </div>
+        </div>
+
+        <!-- Available Discounts Section -->
+        <div class="mt-6 border-t border-neutral-800 pt-6" *ngIf="rewardSummary.unlocked_discounts.length > 0">
+          <h3 class="text-sm font-medium text-white mb-3">Your Available Discounts</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ng-container *ngFor="let discount of rewardSummary.unlocked_discounts">
+              <div *ngIf="!discount.is_used" class="p-3 border border-dashed border-blue-900/50 bg-blue-950/20 rounded-lg flex items-center justify-between">
+                <div>
+                  <span class="block text-lg font-bold text-blue-400">{{ discount.discount_percentage }}% OFF</span>
+                  <span class="text-[10px] text-blue-500/70 uppercase tracking-wider font-mono">{{ discount.referral_type }} Reward</span>
+                </div>
+                <button class="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-800/50 text-xs font-medium rounded transition">
+                  Apply to Next Booking
+                </button>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+      <!-- END REWARDS SECTION -->
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
         <div class="lg:col-span-5 bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl">

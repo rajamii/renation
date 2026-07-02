@@ -1,6 +1,9 @@
 from rest_framework import viewsets, permissions, generics, status
 from rest_framework.decorators import APIView, action
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -15,7 +18,10 @@ from .models import (
     VehicleCategoryMaster, 
     BookingStatusMaster, 
     RoleMaster, 
-    ServicePriceMatrix
+    ServicePriceMatrix,
+    Referral,
+    UnlockedDiscount,
+    LoyaltyMilestone
 )
 from .serializers import (
     ServiceSerializer, 
@@ -26,7 +32,8 @@ from .serializers import (
     UserSerializer,
     RegisterSerializer,
     BookingLogSerializer,
-    UserProfileSerializer
+    UserProfileSerializer,
+    RewardSummarySerializer
 )
 from .permissions import IsAdminUserRole, IsAdminOrOffice, IsAdminOfficeOrReadOnly
 
@@ -259,3 +266,69 @@ class AdminDashboardViewSet(viewsets.ViewSet):
     def view_audit_logs(self, request):
         logs = BookingLog.objects.all()
         return Response(BookingLogSerializer(logs, many=True).data)
+    
+# ==========================================
+# 5. REWARD & LOYALTY TRACKING VIEWS
+# ==========================================
+
+class RewardDashboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        current_year = timezone.now().year
+
+        direct_count = Referral.objects.filter(referrer=user, status='booking_completed').count()
+        
+        indirect_count = Referral.objects.filter(
+            status='booking_completed',
+            referrer__in=Referral.objects.filter(referrer=user).values_list('referee_id', flat=True)
+        ).count()
+
+        yearly_bookings = Booking.objects.filter(
+            user=user, 
+            status__code='COMPLETED', 
+            created_at__year=current_year
+        ).count()
+
+        unlocked = UnlockedDiscount.objects.filter(user=user)
+        loyalty_count = LoyaltyMilestone.objects.filter(user=user, year=current_year).count()
+
+        data = {
+            'referral_code': user.userprofile.referral_code,
+            'direct_referrals_count': direct_count,
+            'indirect_referrals_count': indirect_count,
+            'yearly_bookings_count': yearly_bookings,
+            'unlocked_discounts': unlocked,
+            'loyalty_milestones_unlocked': loyalty_count
+        }
+
+        serializer = RewardSummarySerializer(data)
+        return Response(serializer.data)
+
+
+class ApplyDiscountView(APIView):
+    """Consumes an UnlockedDiscount during checkout"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        discount_id = request.data.get('discount_id')
+        cart_total = request.data.get('cart_total')
+        
+        if not discount_id or not cart_total:
+            return Response({"error": "Missing parameters"}, status=status.HTTP_400_BAD_REQUEST)
+
+        discount = get_object_or_404(UnlockedDiscount, id=discount_id, user=request.user, is_used=False)
+
+        deduction_amount = (discount.discount_percentage / 100.0) * float(cart_total)
+        new_total = float(cart_total) - deduction_amount
+
+        discount.is_used = True
+        discount.save()
+
+        return Response({
+            "message": "Discount applied successfully!",
+            "discount_percentage": discount.discount_percentage,
+            "deduction_amount": deduction_amount,
+            "new_total": new_total
+        })
