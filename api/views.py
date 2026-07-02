@@ -188,12 +188,23 @@ class BookingViewSet(viewsets.ModelViewSet):
         
         if slot:
             self.validate_slot_capacity(slot, requested_date)
-        
+
         try:
             matrix_entry = ServicePriceMatrix.objects.get(service=service, category=vehicle_category)
-            calculated_price = matrix_entry.price_in_rupees
+            calculated_price = float(matrix_entry.price_in_rupees)
         except Exception:
             calculated_price = 0.00
+
+        discount_id = self.request.data.get('discount_id')
+        if discount_id:
+            try:
+                discount = UnlockedDiscount.objects.get(id=discount_id, user=self.request.user, is_used=False)
+                deduction = (discount.discount_percentage / 100.0) * calculated_price
+                calculated_price = calculated_price - deduction
+                discount.is_used = True
+                discount.save()
+            except UnlockedDiscount.DoesNotExist:
+                pass
 
         initial_status = BookingStatusMaster.objects.get(code='PENDING')
         booking = serializer.save(user=self.request.user, status=initial_status, final_price=calculated_price)

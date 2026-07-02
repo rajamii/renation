@@ -2,12 +2,13 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import * as QRCode from 'qrcode';
+
 import { AuthService } from '../services/auth.service';
+import { ApiService } from '../services/api.service';
+
 import { AdminComponent } from '../admin/admin';
 import { OfficeComponent } from '../office/office';
-import { environment } from '../../environments/environments';
 import { RewardSummary } from '../shared/rewards.model';
 import { Observable } from 'rxjs';
 
@@ -18,8 +19,6 @@ import { Observable } from 'rxjs';
   templateUrl: './dashboard.html'
 })
 export class DashboardComponent implements OnInit {
-  private apiUrl = environment.apiUrl;
-
   rewardSummary: RewardSummary | null = null;
   isLoading = true;
   userRole: 'ADMIN' | 'OFFICE' | 'USER' | null = null;
@@ -51,8 +50,8 @@ export class DashboardComponent implements OnInit {
 
   constructor(
     private authService: AuthService,
+    private apiService: ApiService,
     private router: Router,
-    private http: HttpClient,
     private cdr: ChangeDetectorRef
   ) { }
 
@@ -77,11 +76,7 @@ export class DashboardComponent implements OnInit {
   }
 
   loadFormMetadata() {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${localStorage.getItem('access')}`
-    });
-
-    this.http.get<any>(`${this.apiUrl}/config/meta_lookup/`, { headers }).subscribe({
+    this.apiService.get<any>('/config/meta_lookup/').subscribe({
       next: (data) => {
         this.categoriesList = data.categories || [];
         this.cdr.detectChanges();
@@ -89,7 +84,7 @@ export class DashboardComponent implements OnInit {
       error: (err) => console.error('Failed to load categories', err)
     });
 
-    this.http.get<any[]>(`${this.apiUrl}/services/`, { headers }).subscribe({
+    this.apiService.get<any[]>('/services/').subscribe({
       next: (data) => {
         this.servicesList = data || [];
         this.cdr.detectChanges();
@@ -99,11 +94,7 @@ export class DashboardComponent implements OnInit {
   }
 
   getRewardSummary(): Observable<RewardSummary> {
-    return this.http.get<RewardSummary>(`${this.apiUrl}/rewards/summary/`, {
-      headers: new HttpHeaders({
-        'Authorization': `Bearer ${localStorage.getItem('access')}`
-      })
-    });
+    return this.apiService.get<RewardSummary>('/rewards/summary/');
   }
 
   fetchRewards(): void {
@@ -138,12 +129,8 @@ export class DashboardComponent implements OnInit {
 
     if (!this.bookingForm.requested_date) return;
 
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${localStorage.getItem('access')}`
-    });
-
-    // Uses the custom list-filtering capability we added to your AppointmentSlotViewSet
-    this.http.get<any[]>(`${this.apiUrl}/slots/?date=${this.bookingForm.requested_date}`, { headers }).subscribe({
+    // Uses the custom list-filtering capability added to your AppointmentSlotViewSet
+    this.apiService.get<any[]>(`/slots/?date=${this.bookingForm.requested_date}`).subscribe({
       next: (data) => {
         this.availableSlots = data || [];
         this.cdr.detectChanges();
@@ -153,11 +140,7 @@ export class DashboardComponent implements OnInit {
   }
 
   loadUserBookings() {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${localStorage.getItem('access')}`
-    });
-
-    this.http.get<any[]>(`${this.apiUrl}/bookings/`, { headers }).subscribe({
+    this.apiService.get<any[]>('/bookings/').subscribe({
       next: (data) => {
         this.userBookings = data || [];
         this.cdr.detectChanges();
@@ -170,11 +153,12 @@ export class DashboardComponent implements OnInit {
     this.successMessage = '';
     this.errorMessage = '';
 
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${localStorage.getItem('access')}`
-    });
+    const payload = {
+      ...this.bookingForm,
+      discount_id: this.selectedDiscountId
+    };
 
-    this.http.post(`${this.apiUrl}/bookings/`, this.bookingForm, { headers }).subscribe({
+    this.apiService.post('/bookings/', payload).subscribe({
       next: () => {
         this.successMessage = 'Your workshop booking was requested successfully!';
         this.bookingForm = {
@@ -185,10 +169,15 @@ export class DashboardComponent implements OnInit {
           requested_date: '',
           slot: ''
         };
+
+        this.selectedDiscountId = null;
+        this.selectedDiscountPercentage = 0;
+
         this.availableSlots = [];
         this.loadUserBookings();
+        this.fetchRewards();
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Booking generation failed', err);
         this.errorMessage = err.error?.error || err.error?.[0] || 'Validation error occurred.';
       }
@@ -213,7 +202,6 @@ export class DashboardComponent implements OnInit {
     // Loyalty milestone is 10 bookings
     return Math.min((this.rewardSummary.yearly_bookings_count / 10) * 100, 100);
   }
-
 
   openQrModal(booking: any) {
     const qrTextPayload =

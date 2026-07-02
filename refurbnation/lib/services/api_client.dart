@@ -44,6 +44,22 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> getRewardSummary() async {
+    final response = await dio.get('/rewards/dashboard/');
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> applyDiscount(
+    String discountId,
+    double cartTotal,
+  ) async {
+    final response = await dio.post(
+      '/rewards/apply-discount/',
+      data: {'discount_id': discountId, 'cart_total': cartTotal},
+    );
+    return response.data;
+  }
+
   Future<bool> _refreshToken() async {
     try {
       String? refreshToken = await storage.read(key: 'refresh_token');

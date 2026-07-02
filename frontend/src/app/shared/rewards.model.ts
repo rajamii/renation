@@ -1,4 +1,5 @@
 export interface UnlockedDiscount {
+    id: string;
     referral_type: 'direct' | 'indirect';
     milestone_count: number;
     discount_percentage: number;
