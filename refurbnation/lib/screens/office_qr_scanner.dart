@@ -26,16 +26,16 @@ class _OfficeQrScannerScreenState extends State<OfficeQrScannerScreen> {
       final String bookingId = rawData.split(":").last;
 
       try {
-        // Query database via existing direct singular object path provided by Django REST Framework ViewSet
         final response = await _apiClient.dio.get('/bookings/$bookingId/');
-        
+
         if (mounted) {
-          // Send matching JSON record instance directly back to the dashboard context wrapper
           Navigator.pop(context, response.data);
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Invalid matrix reference. Record index not found.")),
+          const SnackBar(
+            content: Text("Invalid matrix reference. Record index not found."),
+          ),
         );
         setState(() => _isProcessing = false);
       }
@@ -49,13 +49,43 @@ class _OfficeQrScannerScreenState extends State<OfficeQrScannerScreen> {
       body: Stack(
         children: [
           MobileScanner(onDetect: _onDetectBarcode),
+          ColorFiltered(
+            colorFilter: ColorFilter.mode(
+              Colors.black.withValues(alpha: 0.8),
+              BlendMode.srcOut,
+            ),
+            child: Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                    backgroundBlendMode: BlendMode.dstOut,
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    width: 240,
+                    height: 240,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Targeting Brackets
           Center(
             child: Container(
               width: 240,
               height: 240,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.blueAccent, width: 3),
-                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).primaryColor,
+                  width: 3,
+                ),
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
           ),

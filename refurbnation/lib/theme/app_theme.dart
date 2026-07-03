@@ -16,18 +16,36 @@ class AppTheme {
         iconTheme: IconThemeData(color: AppColors.textPrimary),
         titleTextStyle: TextStyle(
           color: AppColors.textPrimary,
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
           letterSpacing: -0.5,
         ),
       ),
       textTheme: const TextTheme(
-        bodyLarge: TextStyle(color: AppColors.textPrimary, fontSize: 16),
-        bodyMedium: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        bodyLarge: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 16,
+          letterSpacing: 0.1,
+        ),
+        bodyMedium: TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 14,
+          letterSpacing: 0.1,
+          height: 1.4,
+        ),
         titleLarge: TextStyle(
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.bold,
-          letterSpacing: -0.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.6,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.surface,
+        elevation: 0,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Colors.white10, width: 1.5),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -37,9 +55,36 @@ class AppTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
+          ),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF1E1E1E),
+        hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
+        labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        prefixIconColor: Colors.white38,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.white10, width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFB9FF66), width: 2),
         ),
       ),
     );
@@ -48,14 +93,15 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       brightness: Brightness.light,
-      scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-      primaryColor: AppColors.primary,
+      scaffoldBackgroundColor: const Color(0xFFFBFBFD),
+      primaryColor: const Color(0xFF1A1A1A),
       fontFamily: GoogleFonts.inter().fontFamily,
+
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFF8F9FA),
+        backgroundColor: Color(0xFFFBFBFD),
         elevation: 0,
         centerTitle: false,
-        iconTheme: IconThemeData(color: Color(0xFF1A1A1A)),
+        iconTheme: IconThemeData(color: Color(0xFF1A1A1A), size: 22),
         titleTextStyle: TextStyle(
           color: Color(0xFF1A1A1A),
           fontSize: 22,
@@ -63,93 +109,116 @@ class AppTheme {
           letterSpacing: -0.8,
         ),
       ),
+
       textTheme: const TextTheme(
         bodyLarge: TextStyle(
           color: Color(0xFF1A1A1A),
           fontSize: 16,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.1,
         ),
         bodyMedium: TextStyle(
-          color: Color(0xFF666666),
+          color: Color(0xFF6E6E73), // Slick mid-tone concrete gray
           fontSize: 14,
-          height: 1.3,
+          height: 1.4,
+          letterSpacing: 0.1,
         ),
         titleLarge: TextStyle(
           color: Color(0xFF1A1A1A),
-          fontWeight: FontWeight.bold,
-          letterSpacing: -0.5,
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.6,
         ),
       ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white,
-        hintStyle: const TextStyle(color: Color(0xFF8A8A8A), fontSize: 15),
-        contentPadding: const EdgeInsets.all(20),
-        prefixIconColor: const Color(0xFF666666),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFEFEFEF), width: 1.5),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFEFEFEF), width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 2),
-        ),
-      ),
+
       cardTheme: CardThemeData(
         color: Colors.white,
         elevation: 0,
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 14),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          // Soft gray micro-border instead of intense drop shadows
-          side: const BorderSide(color: Color(0xFFEFEFEF), width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFE8E8ED), width: 1.5),
         ),
       ),
+
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFFF5F5F7),
+        hintStyle: const TextStyle(
+          color: Color(0xFF9E9E9E),
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
+        labelStyle: const TextStyle(
+          color: Color(0xFF1A1A1A),
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 16,
+        ),
+        prefixIconColor: const Color(0xFF86868B),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFE8E8ED), width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(
+            color: Color(0xFF1A1A1A),
+            width: 2,
+          ), // Focus snaps to solid black
+        ),
+      ),
+
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1A1A1A),
+          backgroundColor: const Color(0xFF1A1A1A), // Pure stark contrast black
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 26),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
           ),
           textStyle: const TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w800,
-            letterSpacing: -0.2,
+            letterSpacing: 0.2,
           ),
         ),
       ),
+
+      // Modernized flat outline style
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: const Color(0xFF1A1A1A),
-          side: const BorderSide(color: Color(0xFF1A1A1A), width: 2),
+          side: const BorderSide(color: Color(0xFF1A1A1A), width: 1.5),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       ),
 
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
-        elevation: 10,
+        elevation: 0,
         selectedItemColor: Color(0xFF1A1A1A),
-        unselectedItemColor: Color(0xFF8A8A8A),
+        unselectedItemColor: Color(0xFF86868B),
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
         selectedLabelStyle: TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.1,
         ),
         unselectedLabelStyle: TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

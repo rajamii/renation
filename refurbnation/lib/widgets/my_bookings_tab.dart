@@ -145,12 +145,41 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
 
     if (_userBookings.isEmpty) {
       return Center(
-        child: Text(
-          "No active pipeline bookings found.",
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontFamily: 'monospace',
-            fontSize: 13,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.03),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.auto_awesome_rounded,
+                size: 48,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white38
+                    : Colors.black38,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              "PIPELINE CLEAR",
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2.0,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Your workspace is currently empty.",
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
         ),
       );
     }

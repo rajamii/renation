@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import '../models/service_model.dart';
 import '../models/slot_model.dart';
 import '../services/api_client.dart';
@@ -199,11 +200,17 @@ class _BookingScreenState extends State<BookingScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(
-                            widget.service.name,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleLarge?.copyWith(fontSize: 22),
+                          child: Hero(
+                            tag: 'service_title_${widget.service.id}',
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Text(
+                                widget.service.name,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleLarge?.copyWith(fontSize: 22),
+                              ),
+                            ),
                           ),
                         ),
                         // Dynamic Slice-inspired Neon Price Tag Banner
@@ -364,6 +371,7 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 12),
 
+              // Look for this section inside lib/screens/booking_screen.dart
               _isLoadingSlots
                   ? Center(
                       child: CircularProgressIndicator(
@@ -384,73 +392,121 @@ class _BookingScreenState extends State<BookingScreen> {
                       itemBuilder: (context, index) {
                         final slot = _slots[index];
                         final isSelected = _selectedSlot?.id == slot.id;
+                        final isDark =
+                            Theme.of(context).brightness == Brightness.dark;
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12.0),
-                          child: InkWell(
-                            onTap: () => setState(() => _selectedSlot = slot),
-                            borderRadius: BorderRadius.circular(16),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 18,
-                              ),
-                              decoration: BoxDecoration(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            decoration: BoxDecoration(
+                              // Keeps a subtle dark tint for dark mode, or a solid white fill for light mode
+                              color: isSelected
+                                  ? (isDark
+                                        ? Theme.of(
+                                            context,
+                                          ).primaryColor.withOpacity(0.08)
+                                        : const Color(0xFFF5F5F7))
+                                  : Theme.of(context).cardTheme.color,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                // ---> HERE IS THE SHIFT <---
+                                // Snaps to neon green in dark mode, or stark ink-black in light mode when selected
                                 color: isSelected
-                                    ? Theme.of(
-                                        context,
-                                      ).primaryColor.withValues(alpha: 30)
-                                    : Theme.of(context).cardTheme.color,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? Theme.of(context).primaryColor
-                                      : Colors.transparent,
-                                  width: isSelected ? 2 : 0,
-                                ),
+                                    ? (isDark
+                                          ? const Color(0xFFB9FF66)
+                                          : const Color(0xFF1A1A1A))
+                                    : (isDark
+                                          ? Colors.white10
+                                          : const Color(0xFFE8E8ED)),
+                                width: isSelected ? 2.0 : 1.5,
                               ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Shift Window",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: isSelected
-                                                  ? Theme.of(
-                                                      context,
-                                                    ).primaryColor
-                                                  : Colors.white70,
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                HapticFeedback.selectionClick(); // Adds a subtle, premium physical tick
+                                setState(() => _selectedSlot = slot);
+                              },
+                              borderRadius: BorderRadius.circular(14),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 16,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Shift Window",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: isSelected
+                                                    ? (isDark
+                                                          ? const Color(
+                                                              0xFFB9FF66,
+                                                            )
+                                                          : const Color(
+                                                              0xFF1A1A1A,
+                                                            ))
+                                                    : null,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "${slot.startTime} - ${slot.endTime}",
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium,
+                                        ),
+                                      ],
+                                    ),
+                                    // Animated Radio-style tracking circle
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      curve: Curves.easeInOut,
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? (isDark
+                                                    ? const Color(0xFFB9FF66)
+                                                    : const Color(0xFF1A1A1A))
+                                              : (isDark
+                                                    ? Colors.white24
+                                                    : Colors.black26),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: isSelected
+                                          ? Container(
+                                              width: 10,
+                                              height: 10,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: isDark
+                                                    ? const Color(0xFFB9FF66)
+                                                    : const Color(0xFF1A1A1A),
+                                              ),
+                                            )
+                                          : const SizedBox(
+                                              width: 10,
+                                              height: 10,
                                             ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "${slot.startTime} - ${slot.endTime}",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(fontSize: 15),
-                                      ),
-                                    ],
-                                  ),
-                                  Icon(
-                                    isSelected
-                                        ? Icons.radio_button_checked
-                                        : Icons.radio_button_off,
-                                    color: isSelected
-                                        ? Theme.of(context).primaryColor
-                                        : Colors.white30,
-                                  ),
-                                ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

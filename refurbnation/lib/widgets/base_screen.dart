@@ -13,7 +13,7 @@ class BaseScreen extends StatelessWidget {
     required this.body,
     this.actions,
     this.floatingActionButton,
-    this.isScrollable = true, // Default to true so small screens don't overflow
+    this.isScrollable = true,
   }) : super(key: key);
 
   @override
@@ -25,8 +25,7 @@ class BaseScreen extends StatelessWidget {
 
     if (isScrollable) {
       content = SingleChildScrollView(
-        physics:
-            const BouncingScrollPhysics(), // Gives that smooth iOS/Fintech bounce
+        physics: const BouncingScrollPhysics(),
         child: content,
       );
     }
