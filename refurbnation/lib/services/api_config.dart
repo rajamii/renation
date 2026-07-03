@@ -6,7 +6,7 @@ class ApiConfig {
 
   static String get baseUrl {
     if (kIsWeb) {
-      return _localUrl;
+      return _prodUrl; // Use production URL for web
     }
     return _prodUrl;
   }
