@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/api_client.dart';
+import '../services/logger_util.dart';
 
 class MyBookingsTab extends StatefulWidget {
   const MyBookingsTab({super.key});
@@ -28,12 +29,11 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
         _isLoading = false;
       });
     } catch (e) {
-      print("Failed to load pipeline tracking: $e");
+      AppLogger.log("Failed to load pipeline tracking", e);
       setState(() => _isLoading = false);
     }
   }
 
-  // Slice-like minimal status color adjustments (high-contrast neon accents or subtle tints)
   Color _getStatusColor(String status) {
     switch (status.toUpperCase()) {
       case 'PENDING':
@@ -81,9 +81,13 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
               ),
               Text(
                 booking['service_name'] ?? 'Workshop Treatment',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontSize: 20),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
@@ -183,7 +187,9 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
                       Text(
                         "📅 ${booking['requested_date']}",
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -202,9 +208,9 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: statusColor.withValues(alpha: 0.1),
                         border: Border.all(
-                          color: statusColor.withOpacity(0.3),
+                          color: statusColor.withValues(alpha: 0.3),
                           width: 1.5,
                         ),
                         borderRadius: BorderRadius.circular(8),
@@ -225,7 +231,7 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
                       icon: const Icon(Icons.qr_code_2_rounded, size: 28),
                       color: Theme.of(
                         context,
-                      ).textTheme.bodyLarge?.color?.withOpacity(0.8),
+                      ).textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () => _showQrModal(context, booking),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:jwt_decoder/jwt_decoder.dart'; // 🟢 Make sure jwt_decoder is imported
+import 'package:jwt_decoder/jwt_decoder.dart';
 import '../services/api_client.dart';
+import '../services/logger_util.dart';
 
 class AuthProvider with ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
@@ -14,12 +15,24 @@ class AuthProvider with ChangeNotifier {
   String _firstName = '';
   String _lastName = '';
   String _email = '';
+  String _referralCode = '';
+
+  ThemeMode _themeMode = ThemeMode.dark;
 
   bool get isAuthenticated => _isAuthenticated;
   int? get userId => _userId;
   String get firstName => _firstName;
   String get lastName => _lastName;
   String get email => _email;
+  String get referralCode => _referralCode;
+
+  ThemeMode get themeMode => _themeMode;
+  bool get isDarkMode => _themeMode == ThemeMode.dark;
+
+  void toggleTheme(bool isDark) {
+    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+    notifyListeners();
+  }
 
   Future<bool> login(String email, String password) async {
     try {
@@ -32,7 +45,7 @@ class AuthProvider with ChangeNotifier {
         String role = response.data['role'] ?? 'USER';
 
         if (role != 'USER') {
-          print("Login Denied: Only 'USER' role is allowed.");
+          AppLogger.log("Login Denied: Only 'USER' role is allowed.");
           return false;
         }
 
@@ -54,7 +67,7 @@ class AuthProvider with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print("Login Error: $e");
+      AppLogger.log("Login Error", e);
       return false;
     }
   }
@@ -62,14 +75,18 @@ class AuthProvider with ChangeNotifier {
   // Fetch Profile details from your custom user backend
   Future<void> fetchUserProfile() async {
     try {
-      // 🟢 1. Read the access token from secure storage
       String? accessToken = await storage.read(key: 'access_token');
-
       if (accessToken != null) {
-        // 🟢 2. Decode it and parse the user_id safely string -> int
         Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
-        if (decodedToken['user_id'] != null) {
-          _userId = int.parse(decodedToken['user_id'].toString());
+
+        // Guard against parsing exceptions safely using modern numeric casting
+        final rawUid = decodedToken['user_id'];
+        if (rawUid != null) {
+          if (rawUid is int) {
+            _userId = rawUid;
+          } else if (rawUid is String) {
+            _userId = int.tryParse(rawUid);
+          }
         }
       }
 
@@ -78,10 +95,11 @@ class AuthProvider with ChangeNotifier {
         _firstName = response.data['first_name'] ?? '';
         _lastName = response.data['last_name'] ?? '';
         _email = response.data['email'] ?? '';
+        _referralCode = response.data['referral_code'] ?? '';
         notifyListeners();
       }
     } catch (e) {
-      print("Error fetching profile: $e");
+      AppLogger.log("Error fetching profile", e);
     }
   }
 
@@ -101,24 +119,73 @@ class AuthProvider with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print("Error updating profile: $e");
+      AppLogger.log("Error updating profile", e);
       return false;
     }
   }
 
-  Future<bool> signup(String email, String password) async {
+  Future<bool> signup(
+    String email,
+    String password, {
+    String? referralCode,
+  }) async {
     try {
       final response = await _apiClient.dio.post(
         '/auth/register/',
-        data: {'email': email, 'password': password},
+        data: {
+          'email': email,
+          'password': password,
+          if (referralCode != null && referralCode.isNotEmpty)
+            'referral_code': referralCode,
+        },
       );
-
       if (response.statusCode == 201 || response.statusCode == 200) {
         return true;
       }
       return false;
     } catch (e) {
-      print("Signup Error: $e");
+      AppLogger.log("Signup Error", e);
+      return false;
+    }
+  }
+
+  Future<bool> checkAutoLogin() async {
+    try {
+      String? accessToken = await storage.read(key: 'access_token');
+      if (accessToken == null) return false;
+
+      bool isExpired = JwtDecoder.isExpired(accessToken);
+      if (isExpired) {
+        String? refreshToken = await storage.read(key: 'refresh_token');
+        if (refreshToken == null) return false;
+
+        final response = await _apiClient.dio.post(
+          '/auth/refresh/',
+          data: {'refresh': refreshToken},
+        );
+
+        if (response.statusCode == 200) {
+          await storage.write(
+            key: 'access_token',
+            value: response.data['access'],
+          );
+          if (response.data['refresh'] != null) {
+            await storage.write(
+              key: 'refresh_token',
+              value: response.data['refresh'],
+            );
+          }
+        } else {
+          return false;
+        }
+      }
+
+      _isAuthenticated = true;
+      userRole = 'USER';
+      await fetchUserProfile();
+      notifyListeners();
+      return true;
+    } catch (e) {
       return false;
     }
   }
@@ -131,6 +198,7 @@ class AuthProvider with ChangeNotifier {
     _firstName = '';
     _lastName = '';
     _email = '';
+    _referralCode = '';
     notifyListeners();
   }
 }

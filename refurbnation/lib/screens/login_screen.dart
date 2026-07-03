@@ -13,11 +13,15 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _referralController = TextEditingController();
+  bool _isSignUpMode = false;
+  bool _showReferralField = false;
   bool _isLoading = false;
 
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
+    final referral = _referralController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(
@@ -27,23 +31,45 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
-
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    bool success = await authProvider.login(email, password);
 
-    setState(() => _isLoading = false);
+    if (_isSignUpMode) {
+      // --- REGISTRATION FLOW WITH OPTIONAL CODE ---
+      bool success = await authProvider.signup(
+        email,
+        password,
+        referralCode: referral.isNotEmpty ? referral : null,
+      );
+      setState(() => _isLoading = false);
 
-    if (success && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-      );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Login failed. Check your network or credentials.'),
-        ),
-      );
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account created! Please log in.')),
+        );
+        setState(() => _isSignUpMode = false); // Flip them back to login mode
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration failed. Email might be taken.'),
+          ),
+        );
+      }
+    } else {
+      // --- LOG IN FLOW ---
+      bool success = await authProvider.login(email, password);
+      setState(() => _isLoading = false);
+      if (success && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login failed. Check your network or credentials.'),
+          ),
+        );
+      }
     }
   }
 
@@ -57,7 +83,6 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-
               // App Brand Header
               Text(
                 'refurbnation.',
@@ -65,19 +90,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -1.5,
-                  color: Theme.of(
-                    context,
-                  ).primaryColor, // Accent pop on the brand
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Log in to manage your workshop assets.',
+                !_isSignUpMode
+                    ? 'Log in to manage your workshop assets.'
+                    : 'Create an account to track your detailing pipeline.',
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(fontSize: 16),
               ),
-
               const SizedBox(height: 48),
 
               // Email Input
@@ -103,9 +127,39 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: const TextStyle(fontSize: 16),
               ),
 
+              if (_isSignUpMode && !_isLoading) ...[
+                const SizedBox(height: 16),
+                AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 200),
+                  crossFadeState: !_showReferralField
+                      ? CrossFadeState.showFirst
+                      : CrossFadeState.showSecond,
+                  firstChild: InkWell(
+                    onTap: () => setState(() => _showReferralField = true),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text(
+                        'Have a referral code?',
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  secondChild: TextField(
+                    controller: _referralController,
+                    decoration: const InputDecoration(
+                      hintText: 'Enter 6-digit referral code (Optional)',
+                      prefixIcon: Icon(Icons.card_giftcard, size: 20),
+                    ),
+                  ),
+                ),
+              ],
+
               const Spacer(flex: 2),
 
-              // Neon Action Button
+              // Action Button
               ElevatedButton(
                 onPressed: _isLoading ? null : _handleLogin,
                 child: _isLoading
@@ -117,9 +171,26 @@ class _LoginScreenState extends State<LoginScreen> {
                           strokeWidth: 2.5,
                         ),
                       )
-                    : const Text('Continue'),
+                    : Text(!_isSignUpMode ? 'Continue' : 'Sign Up'),
               ),
               const SizedBox(height: 16),
+
+              // Toggle Between Login and Sign Up
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isSignUpMode = !_isSignUpMode;
+                      _showReferralField = false;
+                    });
+                  },
+                  child: Text(
+                    !_isSignUpMode
+                        ? 'Create an account'
+                        : 'Already have an account? Log in',
+                  ),
+                ),
+              ),
             ],
           ),
         ),

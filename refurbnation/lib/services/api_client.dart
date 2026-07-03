@@ -1,13 +1,9 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'api_config.dart';
 
 class ApiClient {
-  static const String baseUrl = kIsWeb
-      ? 'http://localhost:8000/api'
-      : 'https://refurbnation.onrender.com/api';
-
-  final Dio dio = Dio(BaseOptions(baseUrl: baseUrl));
+  final Dio dio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
   final storage = const FlutterSecureStorage();
 
   ApiClient() {
@@ -28,10 +24,13 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (DioException e, handler) async {
+          // Intercept expired keys instantly
           if (e.response?.statusCode == 401) {
             bool refreshed = await _refreshToken();
             if (refreshed) {
               String? newAccessToken = await storage.read(key: 'access_token');
+
+              // Clone the request bundle with the verified key header map
               e.requestOptions.headers['Authorization'] =
                   'Bearer $newAccessToken';
               final response = await dio.fetch(e.requestOptions);
@@ -65,15 +64,33 @@ class ApiClient {
       String? refreshToken = await storage.read(key: 'refresh_token');
       if (refreshToken == null) return false;
 
+      // Use an isolated secondary Dio container instance to avoid request chaining intercept loops
       final response = await Dio().post(
-        '$baseUrl/auth/refresh/',
+        '${ApiConfig.baseUrl}/auth/refresh/',
         data: {'refresh': refreshToken},
       );
 
-      await storage.write(key: 'access_token', value: response.data['access']);
-      return true;
+      if (response.statusCode == 200) {
+        // Save the newly rotated access token
+        await storage.write(
+          key: 'access_token',
+          value: response.data['access'],
+        );
+
+        // Optionally save the new refresh token if provided
+        if (response.data['refresh'] != null) {
+          await storage.write(
+            key: 'refresh_token',
+            value: response.data['refresh'],
+          );
+        }
+        return true;
+      }
+      return false;
     } catch (e) {
-      await storage.deleteAll();
+      // Clear security instance keys to force state updates if verification completely fails
+      await storage.delete(key: 'access_token');
+      await storage.delete(key: 'refresh_token');
       return false;
     }
   }

@@ -54,6 +54,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    referral_code = serializers.CharField(source='profile.referral_code', read_only=True)
     class Meta:
         model = User
         fields = ['email', 'first_name', 'last_name', 'referral_code']

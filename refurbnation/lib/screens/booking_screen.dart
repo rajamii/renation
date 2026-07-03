@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/service_model.dart';
 import '../models/slot_model.dart';
 import '../services/api_client.dart';
+import '../services/logger_util.dart';
 import '../providers/auth_provider.dart';
 
 class BookingScreen extends StatefulWidget {
@@ -53,12 +54,14 @@ class _BookingScreenState extends State<BookingScreen> {
         _isLoadingSlots = false;
       });
     } catch (e) {
-      print("Error pulling targeted slots: $e");
+      AppLogger.log("Error pulling targeted slots", e);
       setState(() => _isLoadingSlots = false);
     }
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -67,11 +70,24 @@ class _BookingScreenState extends State<BookingScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: Theme.of(context).primaryColor,
-              onPrimary: Colors.black,
-              surface:
-                  Theme.of(context).cardTheme.color ?? const Color(0xFF1E1E1E),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFFB9FF66),
+                    onPrimary: Colors.black,
+                    surface: Color(0xFF1E1E1E),
+                  )
+                : const ColorScheme.light(
+                    primary: Color(0xFF1A1A1A),
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Color(0xFF1A1A1A),
+                  ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: isDark
+                    ? const Color(0xFFB9FF66)
+                    : const Color(0xFF1A1A1A),
+              ),
             ),
           ),
           child: child!,
@@ -103,11 +119,24 @@ class _BookingScreenState extends State<BookingScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     if (authProvider.userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Session Error: User ID missing. please re-login.'),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Session Error: User context missing. Routing back...',
+            ),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+
+        await authProvider.logout();
+
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/login', (route) => false);
+        }
+      }
       return;
     }
 
@@ -132,7 +161,7 @@ class _BookingScreenState extends State<BookingScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      print("Booking validation error: $e");
+      AppLogger.log("Booking validation error", e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -234,9 +263,11 @@ class _BookingScreenState extends State<BookingScreen> {
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<ServicePrice>(
                   value: _selectedCategoryPrice,
-                  hint: const Text(
+                  hint: Text(
                     'Select Vehicle Category',
-                    style: TextStyle(color: Colors.white54),
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
                   isExpanded: true,
                   dropdownColor: Theme.of(context).cardTheme.color,
@@ -249,7 +280,9 @@ class _BookingScreenState extends State<BookingScreen> {
                       value: priceObj,
                       child: Text(
                         priceObj.categoryName,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -278,10 +311,12 @@ class _BookingScreenState extends State<BookingScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.calendar_today_outlined,
                           size: 20,
-                          color: Colors.white54,
+                          color: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                         ),
                         const SizedBox(width: 12),
                         Text(
@@ -289,9 +324,9 @@ class _BookingScreenState extends State<BookingScreen> {
                               ? 'Select Booking Date'
                               : "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}",
                           style: TextStyle(
-                            color: _selectedDate == null
-                                ? Colors.white54
-                                : Colors.white,
+                            color: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.color,
                             fontSize: 16,
                           ),
                         ),
@@ -365,7 +400,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                 color: isSelected
                                     ? Theme.of(
                                         context,
-                                      ).primaryColor.withOpacity(0.12)
+                                      ).primaryColor.withValues(alpha: 30)
                                     : Theme.of(context).cardTheme.color,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(

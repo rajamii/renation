@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import '../services/api_client.dart';
+import '../services/logger_util.dart';
 import '../models/service_model.dart';
 import '../widgets/my_bookings_tab.dart';
 import '../providers/auth_provider.dart';
@@ -35,7 +37,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _isLoadingServices = false;
       });
     } catch (e) {
-      print("Error pulling services: $e");
+      AppLogger.log("Error pulling services", e);
+      setState(() {
+        _isLoadingServices =
+            false; // Prevents the loader from spinning forever on failure
+      });
     }
   }
 
@@ -82,7 +88,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).primaryColor.withOpacity(0.1),
+                          ).primaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -146,7 +152,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 24),
+
+          Card(
+            child: ListTile(
+              title: const Text(
+                'Dark Mode Display',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              trailing: Switch.adaptive(
+                value: Theme.of(context).brightness == Brightness.dark,
+                activeColor: Theme.of(context).primaryColor,
+                onChanged: (bool value) {
+                  authProvider.toggleTheme(value);
+                },
+              ),
+            ),
+          ),
+
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "YOUR REFERRAL CODE",
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      authProvider.referralCode.isNotEmpty
+                          ? authProvider.referralCode
+                          : "FETCHING...",
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.copy_rounded, color: Colors.white70),
+                  onPressed: () {
+                    if (authProvider.referralCode.isNotEmpty) {
+                      Clipboard.setData(
+                        ClipboardData(text: authProvider.referralCode),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Referral code copied!')),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+
           TextField(
             controller: firstNameController,
             decoration: const InputDecoration(labelText: 'First Name'),
@@ -173,14 +248,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
             child: const Text('Save Changes'),
           ),
-          const SizedBox(height: 16),
-          // Using global OutlinedButton theme, overriding just the border color for destructive action
+          const SizedBox(height: 32),
           OutlinedButton(
             style: OutlinedButton.styleFrom(
+              // Using your established warning color style
               side: const BorderSide(color: Colors.redAccent, width: 2),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
             onPressed: () async {
+              final navigator = Navigator.of(context);
               await authProvider.logout();
+              navigator.pushNamedAndRemoveUntil('/login', (route) => false);
             },
             child: const Text(
               'Logout',
@@ -199,7 +280,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final List<Widget> tabsList = [
       _buildBookServiceTab(),
-      const MyBookingsTab(), // Ensure this tab is also stripped of hardcoded colors
+      const MyBookingsTab(),
       _buildProfileTab(),
     ];
 
