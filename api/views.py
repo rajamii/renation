@@ -298,7 +298,7 @@ class RewardDashboardView(APIView):
 
         yearly_bookings = Booking.objects.filter(
             user=user, 
-            status__code='COMPLETED', 
+            status__code='DELIVERED', 
             created_at__year=current_year
         ).count()
 

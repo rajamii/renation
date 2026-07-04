@@ -40,7 +40,7 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
         return Colors.amberAccent;
       case 'CONFIRMED':
         return const Color(0xFFB9FF66); // Neon Green match
-      case 'COMPLETED':
+      case 'DELIVERED':
         return Colors.blueAccent;
       case 'CANCELLED':
         return Colors.redAccent;

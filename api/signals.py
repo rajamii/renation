@@ -5,7 +5,7 @@ from .utils import handle_booking_completion
 
 @receiver(post_save, sender=Booking)
 def check_booking_milestones(sender, instance, created, **kwargs):
-    if instance.status.code == 'COMPLETED':
+    if instance.status.code == 'DELIVERED':
         user_bookings = Booking.objects.filter(user=instance.user)
         handle_booking_completion(
             user=instance.user, 

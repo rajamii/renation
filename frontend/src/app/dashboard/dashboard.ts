@@ -94,7 +94,7 @@ export class DashboardComponent implements OnInit {
   }
 
   getRewardSummary(): Observable<RewardSummary> {
-    return this.apiService.get<RewardSummary>('/rewards/summary/');
+    return this.apiService.get<RewardSummary>('/rewards/dashboard/');
   }
 
   fetchRewards(): void {

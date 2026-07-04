@@ -169,7 +169,7 @@ class Referral(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.referrer.username} -> {self.referee.username} ({self.status})"
+        return f"{self.referrer.email} -> {self.referee.email} ({self.status})"
 
 
 class UnlockedDiscount(models.Model):

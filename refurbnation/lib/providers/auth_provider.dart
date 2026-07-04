@@ -16,6 +16,7 @@ class AuthProvider with ChangeNotifier {
   String _lastName = '';
   String _email = '';
   String _referralCode = '';
+  int _completedBookingsCount = 0;
 
   ThemeMode _themeMode = ThemeMode.dark;
 
@@ -25,6 +26,7 @@ class AuthProvider with ChangeNotifier {
   String get lastName => _lastName;
   String get email => _email;
   String get referralCode => _referralCode;
+  int get completedBookingsCount => _completedBookingsCount;
 
   ThemeMode get themeMode => _themeMode;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
@@ -96,6 +98,7 @@ class AuthProvider with ChangeNotifier {
         _lastName = response.data['last_name'] ?? '';
         _email = response.data['email'] ?? '';
         _referralCode = response.data['referral_code'] ?? '';
+        _completedBookingsCount = response.data['completed_bookings'] ?? 0;
         notifyListeners();
       }
     } catch (e) {

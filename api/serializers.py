@@ -136,6 +136,8 @@ class AppointmentSlotSerializer(serializers.ModelSerializer):
 
 
 class BookingSerializer(serializers.ModelSerializer):
+    status = serializers.SlugRelatedField(slug_field='code', queryset=BookingStatusMaster.objects.all(), required=False)
+    vehicle_category = serializers.SlugRelatedField(slug_field='code', queryset=VehicleCategoryMaster.objects.all())
     status_name = serializers.CharField(source='status.name', read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
     slot_start = serializers.TimeField(source='slot.start_time', read_only=True)

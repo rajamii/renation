@@ -242,7 +242,7 @@
                     [ngClass]="{
                           'bg-amber-950/40 text-amber-400 border-amber-900/50': booking.status === 'PENDING',
                           'bg-emerald-950/40 text-emerald-400 border-emerald-900/50': booking.status === 'CONFIRMED',
-                          'bg-blue-950/40 text-blue-400 border-blue-900/50': booking.status === 'COMPLETED',
+                          'bg-blue-950/40 text-blue-400 border-blue-900/50': booking.status === 'DELIVERED',
                           'bg-rose-950/40 text-rose-400 border-rose-900/50': booking.status === 'CANCELLED'
                         }">
                     ● {{ booking.status_name || booking.status }}

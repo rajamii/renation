@@ -16,7 +16,7 @@ def handle_booking_completion(user, current_booking_id, user_bookings_queryset):
 
     with transaction.atomic():
         completed_this_year = user_bookings_queryset.filter(
-            status__code='COMPLETED', 
+            status__code='DELIVERED', 
             created_at__year=current_year 
         ).count()
 
@@ -48,17 +48,21 @@ def handle_booking_completion(user, current_booking_id, user_bookings_queryset):
             UnlockedDiscount.objects.get_or_create(user=parent, referral_type='direct', milestone_count=5, defaults={'discount_percentage': 30})
 
         grandparent_referral = Referral.objects.filter(referee=parent).first()
-        if grandparent_referral:
-            grandparent = grandparent_referral.referrer
-            
-            indirect_count = Referral.objects.filter(
-                status='booking_completed',
-                referrer__in=Referral.objects.filter(referrer=grandparent).values_list('referee_id', flat=True)
-            ).count()
+    if grandparent_referral:
+        grandparent = grandparent_referral.referrer
+        
+        parent_referee_ids = Referral.objects.filter(
+            referrer=parent
+        ).values_list('referee_id', flat=True)
+        
+        indirect_count = Referral.objects.filter(
+            referrer__in=parent_referee_ids,
+            status='booking_completed'
+        ).values('referee').distinct().count()
 
-            if indirect_count == 10:
-                UnlockedDiscount.objects.get_or_create(user=grandparent, referral_type='indirect', milestone_count=10, defaults={'discount_percentage': 10})
-            elif indirect_count == 25:
-                UnlockedDiscount.objects.get_or_create(user=grandparent, referral_type='indirect', milestone_count=25, defaults={'discount_percentage': 20})
-            elif indirect_count == 50:
-                UnlockedDiscount.objects.get_or_create(user=grandparent, referral_type='indirect', milestone_count=50, defaults={'discount_percentage': 30})
+        if indirect_count >= 50:
+            UnlockedDiscount.objects.get_or_create(user=grandparent, referral_type='indirect', milestone_count=50, defaults={'discount_percentage': 30})
+        elif indirect_count >= 25:
+            UnlockedDiscount.objects.get_or_create(user=grandparent, referral_type='indirect', milestone_count=25, defaults={'discount_percentage': 20})
+        elif indirect_count >= 10:
+            UnlockedDiscount.objects.get_or_create(user=grandparent, referral_type='indirect', milestone_count=10, defaults={'discount_percentage': 10})
