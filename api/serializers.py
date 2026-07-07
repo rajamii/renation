@@ -4,6 +4,8 @@ from .models import (
     Service, 
     ServicePriceMatrix, 
     AppointmentSlot, 
+    VehicleMaster,
+    Garage,
     Booking, 
     BookingLog, 
     VehicleCategoryMaster, 
@@ -63,6 +65,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
 # ==========================================
 # SYSTEM LOOKUP & MASTER TRACKING SERIALIZERS
 # ==========================================
+
+class VehicleMasterSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+
+    class Meta:
+        model = VehicleMaster
+        fields = ['id', 'brand', 'name', 'category', 'category_name']
+
+
+class GarageSerializer(serializers.ModelSerializer):
+    vehicle_details = VehicleMasterSerializer(source='vehicle', read_only=True)
+
+    class Meta:
+        model = Garage
+        fields = ['id', 'vehicle', 'vehicle_details', 'license_plate', 'created_at']
+        read_only_fields = ['id', 'created_at']
 
 class VehicleCategoryMasterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -137,11 +155,17 @@ class AppointmentSlotSerializer(serializers.ModelSerializer):
 
 class BookingSerializer(serializers.ModelSerializer):
     status = serializers.SlugRelatedField(slug_field='code', queryset=BookingStatusMaster.objects.all(), required=False)
-    vehicle_category = serializers.SlugRelatedField(slug_field='code', queryset=VehicleCategoryMaster.objects.all())
+    garage_vehicle = serializers.PrimaryKeyRelatedField(queryset=Garage.objects.all(), required=True)
     status_name = serializers.CharField(source='status.name', read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
     slot_start = serializers.TimeField(source='slot.start_time', read_only=True)
     slot_end = serializers.TimeField(source='slot.end_time', read_only=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and request.user and not request.user.role_id in ['ADMIN', 'OFFICE']:
+            self.fields['garage_vehicle'].queryset = Garage.objects.filter(user=request.user)
 
     class Meta:
         model = Booking

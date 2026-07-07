@@ -21,7 +21,9 @@ from .models import (
     ServicePriceMatrix,
     Referral,
     UnlockedDiscount,
-    LoyaltyMilestone
+    LoyaltyMilestone,
+    VehicleMaster,
+    Garage
 )
 from .serializers import (
     ServiceSerializer, 
@@ -33,7 +35,9 @@ from .serializers import (
     RegisterSerializer,
     BookingLogSerializer,
     UserProfileSerializer,
-    RewardSummarySerializer
+    RewardSummarySerializer,
+    VehicleMasterSerializer,
+    GarageSerializer
 )
 from .permissions import IsAdminUserRole, IsAdminOrOffice, IsAdminOfficeOrReadOnly
 
@@ -88,6 +92,33 @@ class VehicleCategoryViewSet(viewsets.ModelViewSet):
     queryset = VehicleCategoryMaster.objects.all()
     serializer_class = VehicleCategoryMasterSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminUserRole]
+
+class VehicleMasterViewSet(viewsets.ModelViewSet):
+    """
+    Allows Admin to Add/Edit/Delete vehicles.
+    Allows Users to GET the list of vehicles for their garage selection.
+    """
+    queryset = VehicleMaster.objects.all()
+    serializer_class = VehicleMasterSerializer
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsAdminUserRole()]
+
+
+class GarageViewSet(viewsets.ModelViewSet):
+    """
+    Allows Users to manage their personal garage.
+    """
+    serializer_class = GarageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Garage.objects.filter(user=self.request.user).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class ConfigurationViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -182,7 +213,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         service = serializer.validated_data.get('service')
-        vehicle_category = serializer.validated_data.get('vehicle_category')
+        garage_vehicle = serializer.validated_data.get('garage_vehicle')
         requested_date = serializer.validated_data.get('requested_date')
         slot = serializer.validated_data.get('slot')
         
@@ -190,6 +221,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             self.validate_slot_capacity(slot, requested_date)
 
         try:
+            vehicle_category = garage_vehicle.vehicle.category
             matrix_entry = ServicePriceMatrix.objects.get(service=service, category=vehicle_category)
             calculated_price = float(matrix_entry.price_in_rupees)
         except Exception:
@@ -306,7 +338,7 @@ class RewardDashboardView(APIView):
         loyalty_count = LoyaltyMilestone.objects.filter(user=user, year=current_year).count()
 
         data = {
-            'referral_code': user.userprofile.referral_code,
+            'referral_code': user.profile.referral_code,
             'direct_referrals_count': direct_count,
             'indirect_referrals_count': indirect_count,
             'yearly_bookings_count': yearly_bookings,

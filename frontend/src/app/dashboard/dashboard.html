@@ -1,301 +1,429 @@
 <div class="min-h-screen bg-neutral-950 text-neutral-100 font-sans antialiased">
-  <ng-container [ngSwitch]="userRole">
 
-    <app-admin *ngSwitchCase="'ADMIN'"></app-admin>
+  @switch (userRole) {
+  @case ('ADMIN') {
+  <app-admin></app-admin>
+  }
+  @case ('OFFICE') {
+  <app-office></app-office>
+  }
+  @case ('USER') {
+  <div class="max-w-7xl mx-auto p-6 min-h-screen flex flex-col justify-start">
 
-    <app-office *ngSwitchCase="'OFFICE'"></app-office>
+    <header class="flex justify-between items-center border-b border-neutral-800 pb-4 mb-6">
+      <div>
+        <h1 class="text-xl font-semibold text-white tracking-tight">Customer Dashboard</h1>
+        <p class="text-xs text-neutral-400">Logged in as: {{ userEmail }}</p>
+      </div>
+      <button (click)="logout()"
+        class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 text-neutral-300 rounded text-xs hover:bg-neutral-800 transition-colors cursor-pointer">
+        Logout
+      </button>
+    </header>
 
-    <div *ngSwitchCase="'USER'" class="max-w-7xl mx-auto p-6 min-h-screen flex flex-col justify-start">
-      <header class="flex justify-between items-center border-b border-neutral-800 pb-4 mb-8">
-        <div>
-          <h1 class="text-xl font-semibold text-white tracking-tight">Customer Dashboard</h1>
-          <p class="text-xs text-neutral-400">Logged in as: {{ userEmail }}</p>
+    <div class="flex items-center gap-6 border-b border-neutral-900 mb-8">
+      <button (click)="setTab('bookings')" [class.text-white]="activeTab === 'bookings'"
+        [class.border-white]="activeTab === 'bookings'"
+        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">
+        Appointments & Schedule
+      </button>
+      <button (click)="setTab('garage')" [class.text-white]="activeTab === 'garage'"
+        [class.border-white]="activeTab === 'garage'"
+        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">
+        My Garage
+      </button>
+      <button (click)="setTab('rewards')" [class.text-white]="activeTab === 'rewards'"
+        [class.border-white]="activeTab === 'rewards'"
+        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">
+        Rewards Index
+      </button>
+    </div>
+
+    @if (successMessage) {
+    <div class="mb-6 p-3 bg-emerald-950/40 border border-emerald-800 text-emerald-400 rounded text-xs">
+      {{ successMessage }}
+    </div>
+    }
+    @if (errorMessage) {
+    <div class="mb-6 p-3 bg-rose-950/40 border border-rose-800 text-rose-400 rounded text-xs">
+      {{ errorMessage }}
+    </div>
+    }
+
+    @if (activeTab === 'bookings') {
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in">
+
+      <div class="lg:col-span-5 bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
+        <div class="mb-6">
+          <h2 class="text-base font-medium text-white">Book an Appointment</h2>
+          <p class="text-xs text-neutral-400">Configure parameters to generate a digital slot reservation pass.</p>
         </div>
-        <button (click)="logout()"
-          class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 text-neutral-300 rounded text-xs hover:bg-neutral-800 transition-colors cursor-pointer">
-          Logout
-        </button>
-      </header>
 
-      <div *ngIf="successMessage"
-        class="mb-4 p-3 bg-emerald-950 border border-emerald-800 text-emerald-400 rounded text-xs">
-        {{ successMessage }}
+        <form (ngSubmit)="submitBooking()" #bookingFormRef="ngForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-neutral-400 mb-1.5">Required Treatment Service *</label>
+            <select name="service" [(ngModel)]="bookingForm.service" required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700">
+              <option value="" disabled selected>Choose a Service</option>
+              @for (s of servicesList; track s.id) {
+              <option [value]="s.id">{{ s.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-neutral-400 mb-1.5">Select Vehicle from Garage *</label>
+            <select name="garage_vehicle" [(ngModel)]="bookingForm.garage_vehicle" required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700">
+              <option value="" disabled selected>-- Select a Saved Car --</option>
+              @for (userCar of userGarage; track userCar.id) {
+              <option [value]="userCar.id">
+                {{ userCar.vehicle_details?.brand }} {{ userCar.vehicle_details?.name }} ({{ userCar.license_plate |
+                uppercase }})
+              </option>
+              }
+            </select>
+            @if (userGarage.length === 0) {
+            <p class="text-[11px] text-amber-500 mt-2 leading-tight">
+              ⚠️ No vehicles registered. Go to the "My Garage Ledger" tab to add one first.
+            </p>
+            }
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-neutral-400 mb-1.5">Requested Date *</label>
+            <input type="date" name="requested_date" [(ngModel)]="bookingForm.requested_date" (change)="onDateChange()"
+              required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700" />
+          </div>
+
+          @if (bookingForm.requested_date) {
+          <div>
+            <label class="block text-xs font-medium text-neutral-400 mb-1.5">Available Time Slot *</label>
+            <select name="slot" [(ngModel)]="bookingForm.slot" required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700">
+              @if (availableSlots.length > 0) {
+              <option value="" disabled selected>Select an Operating Time Window</option>
+              @for (slot of availableSlots; track slot.id) {
+              <option [value]="slot.id">
+                {{ slot.start_time | slice:0:5 }} - {{ slot.end_time | slice:0:5 }} (Capacity: {{ slot.max_capacity }})
+              </option>
+              }
+              } @else {
+              <option value="" disabled selected>No operating slots published for this day</option>
+              }
+            </select>
+          </div>
+          }
+
+          <div class="pt-4 border-t border-neutral-800 flex justify-end">
+            <button type="submit" [disabled]="!bookingFormRef.form.valid"
+              class="w-full px-5 py-2 rounded bg-white hover:bg-neutral-200 text-neutral-950 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+              Confirm & Request Booking
+            </button>
+          </div>
+        </form>
       </div>
-      <div *ngIf="errorMessage" class="mb-4 p-3 bg-rose-950 border border-rose-800 text-rose-400 rounded text-xs">
-        {{ errorMessage }}
+      <div class="lg:col-span-7 bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
+
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 class="text-base font-medium text-white">Your Appointments Pipeline</h2>
+            <p class="text-xs text-neutral-400">Track treatment progress monitors and active scheduling milestones.</p>
+          </div>
+
+          <div>
+            <select name="statusFilter" [(ngModel)]="selectedStatusFilter" (change)="onFilterChange()"
+              class="bg-neutral-950 border border-neutral-800 rounded px-3 py-1.5 text-xs text-neutral-300 focus:outline-none focus:border-neutral-700 w-full sm:w-auto cursor-pointer">
+              <option value="ALL">All Bookings</option>
+              <option value="PENDING">Pending</option>
+              <option value="CONFIRMED">Booking Confirmed</option>
+              <option value="DELIVERED">Delivered</option>
+              <option value="WORK IN PROGRESS">Men At Work</option>
+            </select>
+          </div>
+        </div>
+
+        @if (getFilteredBookings().length === 0) {
+        <div
+          class="border border-dashed border-neutral-800 rounded-lg p-8 text-center text-neutral-500 text-xs font-mono">
+          @if (selectedStatusFilter === 'ALL') {
+          No historical workshop records found for this client account.
+          } @else {
+          No appointments found matching the selected status filter.
+          }
+        </div>
+        } @else {
+        <div class="space-y-3 max-h-[580px] overflow-y-auto pr-1">
+          @for (booking of getFilteredBookings(); track booking.id) {
+          <div
+            class="bg-neutral-950 border border-neutral-900 rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-semibold text-white">{{ booking.service_name || 'Workshop Treatment' }}</span>
+                <span
+                  class="text-[9px] font-mono uppercase bg-neutral-900 border border-neutral-800 px-1.5 py-0.5 rounded text-neutral-400">
+                  {{ booking.garage_vehicle_details?.vehicle_details?.category_name || 'Tier' }}
+                </span>
+              </div>
+              <p class="text-xs text-neutral-300">
+                {{ booking.garage_vehicle_details?.vehicle_details?.brand }} {{
+                booking.garage_vehicle_details?.vehicle_details?.name }}
+                @if (booking.garage_vehicle_details?.license_plate) {
+                <span class="text-neutral-500">({{ booking.garage_vehicle_details?.license_plate | uppercase }})</span>
+                }
+              </p>
+              <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-neutral-400">
+                <span>📅 Date: {{ booking.requested_date | date:'mediumDate' }}</span>
+                @if (booking.slot_start) {
+                <span class="text-amber-400">⏱️ Time: {{ booking.slot_start | slice:0:5 }} - {{ booking.slot_end |
+                  slice:0:5 }}</span>
+                } @else {
+                <span class="text-neutral-500">⏱️ Slot Pending allocation</span>
+                }
+                @if (booking.final_price) {
+                <span class="text-emerald-400 font-medium">₹{{ booking.final_price }}</span>
+                }
+              </div>
+            </div>
+
+            <div
+              class="flex flex-col items-end gap-1.5 w-full md:w-auto border-t md:border-t-0 border-neutral-900 pt-2 md:pt-0">
+              <span class="text-[10px] tracking-wider font-mono uppercase font-semibold px-2 py-1 rounded border"
+                [ngClass]="{
+                    'bg-amber-950/40 text-amber-400 border-amber-900/50': booking.status === 'PENDING',
+                    'bg-emerald-950/40 text-emerald-400 border-emerald-900/50': booking.status === 'CONFIRMED',
+                    'bg-blue-950/40 text-blue-400 border-blue-900/50': booking.status === 'DELIVERED',
+                    'bg-rose-950/40 text-rose-400 border-rose-900/50': booking.status === 'CANCELLED'
+                  }">
+                ● {{ booking.status_name || booking.status }}
+              </span>
+              @if (booking.estimated_delivery_timeline) {
+              <span class="text-[10px] text-neutral-500">ETA: {{ booking.estimated_delivery_timeline }}</span>
+              }
+              <button (click)="openQrModal(booking)"
+                class="mt-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 px-2.5 py-1 rounded text-[11px] transition cursor-pointer">
+                View Pass
+              </button>
+            </div>
+          </div>
+          }
+        </div>
+        }
       </div>
 
-      <!-- NEW: REWARDS & PROGRESS SECTION -->
-      <div *ngIf="rewardSummary" class="mb-8 bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl">
+    </div>
+    }
+
+    @if (activeTab === 'garage') {
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in">
+      <div class="lg:col-span-4 bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
+        <h2 class="text-base font-medium text-white mb-1">Add New Vehicle</h2>
+        <p class="text-xs text-neutral-400 mb-4">Link domestic car assets from the lookup database directory into your
+          active profile.</p>
+
+        <form (ngSubmit)="addCarToGarage()" class="space-y-4">
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Vehicle Brand / Make
+              *</label>
+            <select name="addGarageBrand" [(ngModel)]="garagePayload.brand" (change)="onBrandChange()" required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700">
+              <option value="" disabled selected>-- Choose Brand --</option>
+              @for (brand of uniqueBrands; track brand) {
+              <option [value]="brand">{{ brand }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Model Specification
+              *</label>
+            <select name="addGarageVehicle" [(ngModel)]="garagePayload.vehicle" [disabled]="!garagePayload.brand"
+              required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed">
+              <option value="" disabled selected>{{ garagePayload.brand ? '-- Select Model --' : '← Choose a brand
+                first' }}</option>
+              @for (car of filteredModels; track car.id) {
+              <option [value]="car.id">{{ car.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">License Plate Number
+              *</label>
+            <input type="text" name="addGaragePlate" [(ngModel)]="garagePayload.license_plate"
+              placeholder="e.g. MH12AB1234" required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-white uppercase focus:outline-none focus:border-neutral-700 placeholder-neutral-700">
+          </div>
+          <button type="submit"
+            class="w-full bg-white text-black text-xs font-medium py-2.5 rounded-lg hover:bg-neutral-200 transition-all cursor-pointer">
+            Register Vehicle Asset
+          </button>
+        </form>
+      </div>
+
+      <div class="lg:col-span-8 bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
+        <h2 class="text-base font-medium text-white mb-1">Registered Fleet Ledgers</h2>
+        <p class="text-xs text-neutral-400 mb-6">List configuration mapping definitions registered inside your client
+          profile account.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          @for (item of userGarage; track item.id) {
+          <div
+            class="bg-neutral-950 border border-neutral-800 rounded-xl p-4 flex flex-col justify-between hover:border-neutral-700 transition-all">
+            <div class="mb-4">
+              <span class="text-xs font-mono font-bold text-neutral-500 uppercase tracking-wider block mb-1">License
+                Plate</span>
+              <span class="text-base font-bold text-white tracking-widest font-mono">{{ item.license_plate | uppercase
+                }}</span>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-neutral-900">
+              <div>
+                <p class="text-xs font-semibold text-neutral-200">{{ item.vehicle_details?.brand }}</p>
+                <p class="text-[11px] text-neutral-400">{{ item.vehicle_details?.name }}</p>
+              </div>
+              <span
+                class="text-[10px] font-mono bg-neutral-900 text-neutral-400 border border-neutral-800 px-2.5 py-0.5 rounded-full uppercase">
+                {{ item.vehicle_details?.category_name }}
+              </span>
+            </div>
+          </div>
+          } @empty {
+          <div
+            class="md:col-span-2 border border-dashed border-neutral-800 rounded-xl p-12 text-center text-neutral-500 text-xs font-mono">
+            No matching client-side vehicular references linked onto this garage module.
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+    }
+
+    @if (activeTab === 'rewards' && rewardSummary) {
+    <div class="space-y-8 animate-fade-in">
+      <div class="bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
         <div class="mb-6 flex justify-between items-end">
           <div>
-            <h2 class="text-base font-medium text-white">My Rewards & Progress</h2>
-            <p class="text-xs text-neutral-400">Track your network and yearly loyalty milestones.</p>
+            <h2 class="text-base font-medium text-white">Network Milestones Summary</h2>
+            <p class="text-xs text-neutral-400">Review cumulative multi-tier commission progress stats.</p>
           </div>
           <div class="text-xs text-neutral-500 font-mono">
-            Your Code: <span class="text-white font-bold bg-neutral-950 px-2 py-1 rounded border border-neutral-800">{{
+            Your Referral Code: <span
+              class="text-white font-bold bg-neutral-950 px-2.5 py-1.5 rounded border border-neutral-800 font-sans tracking-wide ml-1">{{
               rewardSummary.referral_code }}</span>
           </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <!-- Direct Referrals Card -->
-          <div class="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
+          <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-5">
             <h3 class="text-sm font-semibold text-neutral-200 mb-1">Direct Referrals</h3>
-            <p class="text-[11px] text-neutral-500 mb-4">Invite friends to unlock up to 30% off.</p>
-
+            <p class="text-[11px] text-neutral-500 mb-4">Invite friends to unlock up to 30% off tiers.</p>
             <div class="flex justify-between text-xs font-medium text-neutral-300 mb-1.5">
               <span>{{ rewardSummary.direct_referrals_count }} / 5 Booked</span>
               <span>{{ getDirectProgress() | number:'1.0-0' }}%</span>
             </div>
             <div class="w-full bg-neutral-800 rounded-full h-1.5 mb-2">
-              <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
-                [style.width.%]="getDirectProgress()"></div>
+              <div class="bg-blue-500 h-1.5 rounded-full transition-all" [style.width.%]="getDirectProgress()"></div>
             </div>
             <p class="text-[10px] text-neutral-500">Milestones: 3 (20% off), 5 (30% off)</p>
           </div>
 
-          <!-- Indirect Referrals Card -->
-          <div class="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
+          <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-5">
             <h3 class="text-sm font-semibold text-neutral-200 mb-1">Network Referrals</h3>
-            <p class="text-[11px] text-neutral-500 mb-4">Earn when your friends invite others.</p>
-
+            <p class="text-[11px] text-neutral-500 mb-4">Earn automatically across wider networks.</p>
             <div class="flex justify-between text-xs font-medium text-neutral-300 mb-1.5">
               <span>{{ rewardSummary.indirect_referrals_count }} / 50 Booked</span>
               <span>{{ getIndirectProgress() | number:'1.0-0' }}%</span>
             </div>
             <div class="w-full bg-neutral-800 rounded-full h-1.5 mb-2">
-              <div class="bg-purple-500 h-1.5 rounded-full transition-all duration-500"
-                [style.width.%]="getIndirectProgress()"></div>
+              <div class="bg-purple-500 h-1.5 rounded-full transition-all" [style.width.%]="getIndirectProgress()">
+              </div>
             </div>
             <p class="text-[10px] text-neutral-500">Milestones: 10, 25, 50 network bookings</p>
           </div>
 
-          <!-- Loyalty / Yearly Bookings Card -->
-          <div class="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
+          <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-5">
             <h3 class="text-sm font-semibold text-neutral-200 mb-1">Yearly Loyalty</h3>
-            <p class="text-[11px] text-neutral-500 mb-4">Book 10 times this year for a free reward.</p>
-
+            <p class="text-[11px] text-neutral-500 mb-4">Schedule 10 appointments for elite status updates.</p>
             <div class="flex justify-between text-xs font-medium text-neutral-300 mb-1.5">
               <span>{{ rewardSummary.yearly_bookings_count }} / 10 Visits</span>
               <span>{{ getLoyaltyProgress() | number:'1.0-0' }}%</span>
             </div>
             <div class="w-full bg-neutral-800 rounded-full h-1.5 mb-2">
-              <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
-                [style.width.%]="getLoyaltyProgress()"></div>
+              <div class="bg-emerald-500 h-1.5 rounded-full transition-all" [style.width.%]="getLoyaltyProgress()">
+              </div>
             </div>
             <p class="text-[10px] text-neutral-500">Resets annually on January 1st</p>
           </div>
         </div>
 
-        <!-- Available Discounts Section -->
-        <div class="mt-6 border-t border-neutral-800 pt-6" *ngIf="rewardSummary.unlocked_discounts.length > 0">
+        @if (rewardSummary.unlocked_discounts.length > 0) {
+        <div class="mt-8 border-t border-neutral-800 pt-6">
           <h3 class="text-sm font-medium text-white mb-3">Your Available Discounts</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ng-container *ngFor="let discount of rewardSummary.unlocked_discounts">
-              <div *ngIf="!discount.is_used"
-                class="p-3 border rounded-lg flex items-center justify-between transition-colors"
-                [ngClass]="selectedDiscountId === discount.id ? 'border-emerald-500 bg-emerald-950/20' : 'border-dashed border-blue-900/50 bg-blue-950/20'">
-                <div>
-                  <span class="block text-lg font-bold"
-                    [ngClass]="selectedDiscountId === discount.id ? 'text-emerald-400' : 'text-blue-400'">
-                    {{ discount.discount_percentage }}% OFF
-                  </span>
-                  <span class="text-[10px] uppercase tracking-wider font-mono"
-                    [ngClass]="selectedDiscountId === discount.id ? 'text-emerald-500/70' : 'text-blue-500/70'">
-                    {{ discount.referral_type }} Reward
-                  </span>
-                </div>
-
-                <!-- Toggle Button -->
-                <button type="button" (click)="toggleDiscount(discount)"
-                  class="px-3 py-1.5 text-xs font-medium rounded transition border"
-                  [ngClass]="selectedDiscountId === discount.id ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border-blue-800/50'">
-                  {{ selectedDiscountId === discount.id ? 'Applied ✅' : 'Apply to Next Booking' }}
-                </button>
+            @for (discount of rewardSummary.unlocked_discounts; track discount.id) {
+            @if (!discount.is_used) {
+            <div class="p-4 border rounded-xl flex items-center justify-between transition-colors"
+              [ngClass]="selectedDiscountId === discount.id ? 'border-emerald-500 bg-emerald-950/20' : 'border-dashed border-blue-900/50 bg-blue-950/20'">
+              <div>
+                <span class="block text-xl font-bold"
+                  [ngClass]="selectedDiscountId === discount.id ? 'text-emerald-400' : 'text-blue-400'">
+                  {{ discount.discount_percentage }}% OFF
+                </span>
+                <span class="text-[10px] uppercase tracking-wider font-mono"
+                  [ngClass]="selectedDiscountId === discount.id ? 'text-emerald-500/70' : 'text-blue-500/70'">
+                  {{ discount.referral_type }} Reward
+                </span>
               </div>
-            </ng-container>
-          </div>
-        </div>
-      </div>
-      <!-- END REWARDS SECTION -->
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-        <div class="lg:col-span-5 bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl">
-          <div class="mb-6">
-            <h2 class="text-base font-medium text-white">Book an Appointment</h2>
-            <p class="text-xs text-neutral-400">Provide service details to request an automated schedule slot.</p>
-          </div>
-
-          <form (ngSubmit)="submitBooking()" #bookingFormRef="ngForm" class="space-y-4">
-            <div>
-              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Required Treatment Service *</label>
-              <select name="service" [(ngModel)]="bookingForm.service" required
-                class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700">
-                <option value="" disabled selected>Choose a Service</option>
-                <option *ngFor="let s of servicesList" [value]="s.id">{{ s.name }}</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Vehicle Classification Tiers *</label>
-              <select name="vehicle_category" [(ngModel)]="bookingForm.vehicle_category" required
-                class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700">
-                <option value="" disabled selected>Select Tier Category</option>
-                <option *ngFor="let c of categoriesList" [value]="c.code">{{ c.name }}</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Vehicle Make & Model *</label>
-              <input type="text" name="vehicle_make_model" [(ngModel)]="bookingForm.vehicle_make_model" required
-                placeholder="e.g. Honda Civic"
-                class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-neutral-700" />
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-neutral-400 mb-1.5">License Plate ID (Optional)</label>
-              <input type="text" name="vehicle_license_plate" [(ngModel)]="bookingForm.vehicle_license_plate"
-                placeholder="e.g. DL-3C-1234"
-                class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-neutral-700" />
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Requested Date *</label>
-              <input type="date" name="requested_date" [(ngModel)]="bookingForm.requested_date"
-                (change)="onDateChange()" required
-                class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700" />
-            </div>
-
-            <div *ngIf="bookingForm.requested_date">
-              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Available Time Slot *</label>
-              <select name="slot" [(ngModel)]="bookingForm.slot" required
-                class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700 disabled:opacity-50">
-                <option value="" disabled selected *ngIf="availableSlots.length > 0">Select an Operating Time Window
-                </option>
-                <option value="" disabled selected *ngIf="availableSlots.length === 0">No operating slots published for
-                  this day</option>
-                <option *ngFor="let slot of availableSlots" [value]="slot.id">
-                  {{ slot.start_time | slice:0:5 }} - {{ slot.end_time | slice:0:5 }} (Capacity: {{ slot.max_capacity
-                  }})
-                </option>
-              </select>
-            </div>
-
-            <div class="pt-4 border-t border-neutral-800 flex justify-end">
-              <button type="submit" [disabled]="!bookingFormRef.form.valid"
-                class="w-full px-5 py-2 rounded bg-neutral-100 hover:bg-neutral-200 text-neutral-950 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
-                Confirm & Request Booking
+              <button type="button" (click)="toggleDiscount(discount)"
+                class="px-3 py-1.5 text-xs font-medium rounded-lg transition border cursor-pointer"
+                [ngClass]="selectedDiscountId === discount.id ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border-blue-800/50'">
+                {{ selectedDiscountId === discount.id ? 'Applied ✅' : 'Apply to Next Booking' }}
               </button>
             </div>
-          </form>
-        </div>
-
-        <div class="lg:col-span-7 space-y-4">
-          <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl">
-            <div class="mb-4">
-              <h2 class="text-base font-medium text-white">Your Appointments Pipeline</h2>
-              <p class="text-xs text-neutral-400">Track real-time status updates and scheduled allocations for your
-                vehicles.</p>
-            </div>
-
-            <div *ngIf="userBookings.length === 0"
-              class="border border-dashed border-neutral-800 rounded-lg p-8 text-center text-neutral-500 text-xs font-mono">
-              No historical workshop records found for this client account.
-            </div>
-
-            <div *ngIf="userBookings.length > 0" class="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-              <div *ngFor="let booking of userBookings"
-                class="bg-neutral-950 border border-neutral-800 rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <div class="flex items-center gap-2 mb-1">
-                    <span class="text-xs font-semibold text-white">{{ booking.service_name || 'Workshop Treatment'
-                      }}</span>
-                    <span
-                      class="text-[10px] font-mono uppercase bg-neutral-900 border border-neutral-800 px-1.5 py-0.5 rounded text-neutral-400">
-                      {{ booking.vehicle_category }}
-                    </span>
-                  </div>
-                  <p class="text-xs text-neutral-300">{{ booking.vehicle_make_model }} <span class="text-neutral-500"
-                      *ngIf="booking.vehicle_license_plate">({{ booking.vehicle_license_plate }})</span></p>
-
-                  <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-neutral-400">
-                    <span class="flex items-center gap-1">
-                      📅 Date: {{ booking.requested_date | date:'mediumDate' }}
-                    </span>
-                    <span *ngIf="booking.slot_start" class="text-amber-400 flex items-center gap-1 font-medium">
-                      ⏱️ Time: {{ booking.slot_start | slice:0:5 }} - {{ booking.slot_end | slice:0:5 }}
-                    </span>
-                    <span *ngIf="!booking.slot_start" class="text-neutral-500 flex items-center gap-1">
-                      ⏱️ Slot Pending allocation
-                    </span>
-                    <span *ngIf="booking.final_price" class="text-emerald-400 font-medium">
-                      ₹{{ booking.final_price }}
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  class="flex flex-col items-end gap-1.5 w-full md:w-auto border-t md:border-t-0 border-neutral-900 pt-2 md:pt-0">
-                  <span class="text-[10px] tracking-wider font-mono uppercase font-semibold px-2 py-1 rounded border"
-                    [ngClass]="{
-                          'bg-amber-950/40 text-amber-400 border-amber-900/50': booking.status === 'PENDING',
-                          'bg-emerald-950/40 text-emerald-400 border-emerald-900/50': booking.status === 'CONFIRMED',
-                          'bg-blue-950/40 text-blue-400 border-blue-900/50': booking.status === 'DELIVERED',
-                          'bg-rose-950/40 text-rose-400 border-rose-900/50': booking.status === 'CANCELLED'
-                        }">
-                    ● {{ booking.status_name || booking.status }}
-                  </span>
-                  <span class="text-[10px] text-neutral-500" *ngIf="booking.estimated_delivery_timeline">
-                    ETA: {{ booking.estimated_delivery_timeline }}
-                  </span>
-                </div>
-
-                <button (click)="openQrModal(booking)"
-                  class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition">
-                  View QR Pass
-                </button>
-
-                <div *ngIf="showQrModal"
-                  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                  <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
-                    <h3 class="text-lg font-bold mb-2 text-gray-800">Your Booking QR Pass</h3>
-                    <p class="text-xs text-gray-500 mb-4">Show this at the counter upon arrival</p>
-
-                    <div class="flex justify-center p-4 bg-gray-50 rounded mb-4">
-                      <img *ngIf="qrCodeDataUrl" [src]="qrCodeDataUrl" alt="Booking QR Code" class="mx-auto" />
-                      <p *ngIf="!qrCodeDataUrl" class="text-sm text-gray-400">Generating pass...</p>
-                    </div>
-
-                    <p class="text-sm font-mono text-gray-600 mb-4">ID: {{ selectedBookingId }}</p>
-
-                    <button (click)="closeQrModal()"
-                      class="w-full bg-gray-800 hover:bg-gray-900 text-white py-2 rounded transition">
-                      Close pass
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
+            }
+            }
           </div>
         </div>
-
+        }
       </div>
     </div>
+    }
 
-    <div *ngSwitchDefault class="flex flex-col items-center justify-center min-h-screen p-6 text-center">
-      <div class="w-12 h-12 rounded-full border border-neutral-800 flex items-center justify-center mb-4 animate-pulse">
-        <span class="text-xs font-mono text-neutral-500">...</span>
+    @if (showQrModal) {
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+      <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center border border-neutral-200">
+        <h3 class="text-lg font-bold mb-1 text-neutral-900">Your Booking QR Pass</h3>
+        <p class="text-xs text-neutral-500 mb-4">Present this barcode at the check-in reception terminal.</p>
+        <div class="flex justify-center p-4 bg-neutral-50 rounded-xl mb-4 border border-neutral-100">
+          @if (qrCodeDataUrl) {
+          <img [src]="qrCodeDataUrl" alt="Booking QR Code" class="mx-auto" />
+          } @else {
+          <p class="text-sm text-neutral-400 animate-pulse">Generating security encryption pass...</p>
+          }
+        </div>
+        <p class="text-xs font-mono text-neutral-400 mb-4 bg-neutral-50 py-1 rounded">ID REFERENCE: {{ selectedBookingId
+          }}</p>
+        <button (click)="closeQrModal()"
+          class="w-full bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-medium py-2.5 rounded-xl transition-all cursor-pointer shadow-md">
+          Close Workshop Pass
+        </button>
       </div>
-      <h3 class="text-sm font-medium text-white mb-1">Evaluating Access Privileges</h3>
-      <button (click)="logout()"
-        class="text-xs text-neutral-500 hover:text-white transition-colors cursor-pointer underline underline-offset-4">
-        Return to Login
-      </button>
     </div>
+    }
 
-  </ng-container>
+  </div>
+  }
+  @default {
+  <div class="flex flex-col items-center justify-center min-h-screen p-6 text-center">
+    <div class="w-12 h-12 rounded-full border border-neutral-800 flex items-center justify-center mb-4 animate-pulse">
+      <span class="text-xs font-mono text-neutral-500">...</span>
+    </div>
+    <h3 class="text-sm font-medium text-white mb-1">Evaluating Access Privileges</h3>
+    <button (click)="logout()"
+      class="text-xs text-neutral-500 hover:text-white transition-colors cursor-pointer underline underline-offset-4">
+      Return to Login
+    </button>
+  </div>
+  }
+  }
 </div>

@@ -5,7 +5,7 @@ from django.utils import timezone
 from .utils import generate_referral_code
 
 # ==========================================
-# 1. DATABASE CONFIGURATION MASTER TABLES
+# DATABASE CONFIGURATION MASTER TABLES
 # ==========================================
 
 class RoleMaster(models.Model):
@@ -36,7 +36,7 @@ class BookingStatusMaster(models.Model):
         return self.name
 
 # ==========================================
-# 2. CORE IDENTITY ENGINE MANAGERS & MODALS
+# CORE IDENTITY ENGINE MANAGERS & MODALS
 # ==========================================
 
 class CustomUserManager(BaseUserManager):
@@ -82,7 +82,39 @@ class UserProfile(models.Model):
     referral_code = models.CharField(max_length=10, unique=True, default=generate_referral_code)
 
 # ==========================================
-# 3. WORKSHOP SCHEDULING & PRICE MODELS
+# MASTER VEHICLE DIRECTORY
+# ==========================================
+class VehicleMaster(models.Model):
+    """Admin managed master table for vehicles available in India"""
+    brand = models.CharField(max_length=100)  # e.g., Maruti Suzuki, Tata, Hyundai
+    name = models.CharField(max_length=100)   # e.g., Swift, Nexon, Creta
+    category = models.ForeignKey(VehicleCategoryMaster, on_delete=models.PROTECT, related_name='vehicles')
+
+    class Meta:
+        unique_together = ('brand', 'name')
+        ordering = ['brand', 'name']
+
+    def __str__(self):
+        return f"{self.brand} {self.name}"
+
+# ==========================================
+# USER GARAGE
+# ==========================================
+class Garage(models.Model):
+    """Tracks the user's saved vehicles for quick booking."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='garage_vehicles')
+    vehicle = models.ForeignKey(VehicleMaster, on_delete=models.PROTECT, related_name='garage_entries')
+    license_plate = models.CharField(max_length=50, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'license_plate')
+
+    def __str__(self):
+        return f"{self.user.email} - {self.vehicle.brand} {self.vehicle.name} ({self.license_plate})" 
+
+# ==========================================
+# WORKSHOP SCHEDULING & PRICE MODELS
 # ==========================================
 
 class Service(models.Model):
@@ -125,9 +157,7 @@ class AppointmentSlot(models.Model):
 class Booking(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
     service = models.ForeignKey(Service, on_delete=models.PROTECT)
-    vehicle_category = models.ForeignKey(VehicleCategoryMaster, on_delete=models.PROTECT, related_name='bookings')
-    vehicle_make_model = models.CharField(max_length=255)
-    vehicle_license_plate = models.CharField(max_length=50, blank=True, null=True)
+    garage_vehicle = models.ForeignKey(Garage, on_delete=models.PROTECT, related_name='bookings', null=True, blank=True)
     requested_date = models.DateField()
     
     slot = models.ForeignKey(AppointmentSlot, on_delete=models.PROTECT, related_name='bookings', blank=True, null=True)
@@ -152,7 +182,7 @@ class BookingLog(models.Model):
         ordering = ['-timestamp']
 
  # ==========================================
- # 4. REFERRAL & LOYALTY MODELS
+ # REFERRAL & LOYALTY MODELS
  # ==========================================       
 
 class Referral(models.Model):
@@ -199,4 +229,4 @@ class LoyaltyMilestone(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'year', 'milestone_tier')       
+        unique_together = ('user', 'year', 'milestone_tier')      

@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { environment } from '../../environments/environment.prod';
+import { environment } from '../../environments/environments';
 
 @Component({
   selector: 'app-admin',
@@ -13,18 +13,21 @@ import { environment } from '../../environments/environment.prod';
   imports: [FormsModule, CommonModule]
 })
 export class AdminComponent implements OnInit {
-  activeTab: 'clients' | 'office' | 'services' | 'categories' | 'logs' = 'clients';
-  
+  activeTab: 'clients' | 'office' | 'services' | 'categories' | 'logs' | 'vehicles' = 'clients';
+
   logs: any[] = [];
   users: any[] = [];
   services: any[] = [];
   categories: any[] = [];
+  vehiclesIndex: any[] = [];
 
   newOfficeEmail = '';
   newOfficePassword = '';
 
   newCategoryCode = '';
   newCategoryName = '';
+
+  newVehicle = { brand: '', name: '', category: '' };
 
   newService = {
     name: '',
@@ -46,15 +49,15 @@ export class AdminComponent implements OnInit {
     private http: HttpClient,
     private authService: AuthService,
     private router: Router,
-     private cdr: ChangeDetectorRef
-  ) {}
+    private cdr: ChangeDetectorRef
+  ) { }
 
   ngOnInit() {
     this.loadMasterCategories();
     this.refreshData();
   }
 
-  setTab(tab: 'clients' | 'office' | 'services' | 'categories' | 'logs') {
+  setTab(tab: 'clients' | 'office' | 'services' | 'categories' | 'logs' | 'vehicles') {
     this.activeTab = tab;
     this.refreshData();
   }
@@ -81,6 +84,8 @@ export class AdminComponent implements OnInit {
       this.fetchCategories();
     } else if (this.activeTab === 'logs') {
       this.fetchAuditLogs();
+    } else if (this.activeTab === 'vehicles') {
+      this.fetchMasterVehicles();
     } else {
       this.fetchUsers();
     }
@@ -183,7 +188,7 @@ export class AdminComponent implements OnInit {
 
   createVehicleCategory() {
     if (!this.newCategoryCode || !this.newCategoryName) return;
-    
+
     const payload = {
       code: this.newCategoryCode.toUpperCase().replace(/\s+/g, '_'),
       name: this.newCategoryName
@@ -205,6 +210,30 @@ export class AdminComponent implements OnInit {
         this.fetchCategories();
         this.loadMasterCategories();
       });
+  }
+
+  fetchMasterVehicles() {
+    this.http.get(`${environment.apiUrl}/vehicles/`, { headers: this.getHeaders() })
+      .subscribe((data: any) => {
+        this.vehiclesIndex = data;
+        this.cdr.detectChanges();
+      });
+  }
+
+  createMasterVehicle() {
+    if (!this.newVehicle.brand || !this.newVehicle.name || !this.newVehicle.category) return;
+
+    this.http.post(`${environment.apiUrl}/vehicles/`, this.newVehicle, { headers: this.getHeaders() })
+      .subscribe(() => {
+        this.fetchMasterVehicles();
+        this.newVehicle = { brand: '', name: '', category: '' };
+      });
+  }
+
+  deleteMasterVehicle(id: number) {
+    if (!confirm('Are you sure you want to delete this car model from the global catalog?')) return;
+    this.http.delete(`${environment.apiUrl}/vehicles/${id}/`, { headers: this.getHeaders() })
+      .subscribe(() => this.fetchMasterVehicles());
   }
 
   fetchAuditLogs() {
