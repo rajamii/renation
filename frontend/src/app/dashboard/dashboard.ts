@@ -33,7 +33,17 @@ export class DashboardComponent implements OnInit {
 
   selectedStatusFilter: string = 'CONFIRMED';
 
-  activeTab: 'bookings' | 'garage' | 'rewards' = 'bookings';
+  activeTab: 'bookings' | 'garage' | 'rewards' | 'profile' = 'bookings';
+
+  profileData = {
+    email: '',
+    username: '',
+    first_name: '',
+    last_name: '',
+    phone_number: '',
+    referral_code: ''
+  };
+  isEditingProfile = false;
 
   bookingForm = {
     service: '',
@@ -79,10 +89,11 @@ export class DashboardComponent implements OnInit {
       this.fetchRewards();
       this.fetchUserGarage();
       this.fetchCatalogLookups();
+      this.fetchUserProfile();
     }
   }
 
-  setTab(tabName: 'bookings' | 'garage' | 'rewards') {
+  setTab(tabName: 'bookings' | 'garage' | 'profile' | 'rewards') {
     this.activeTab = tabName;
     this.selectedStatusFilter = 'CONFIRMED';
     this.cdr.detectChanges();
@@ -104,6 +115,50 @@ export class DashboardComponent implements OnInit {
       error: (err) => console.error('Failed to load services index menu', err)
     });
   }
+
+  fetchUserProfile() {
+    this.apiService.get<any>('/auth/profile/').subscribe({
+      next: (data) => {
+        if (data) {
+          this.profileData = data;
+          this.userEmail = data.email;
+          localStorage.setItem('email', data.email);
+        }
+      },
+      error: (err) => console.error('Failed to resolve profile fields', err)
+    });
+  }
+
+  saveProfileChanges() {
+    this.successMessage = '';
+    this.errorMessage = '';
+
+    const patchPayload = {
+      email: this.profileData.email,
+      phone_number: this.profileData.phone_number
+    };
+
+    this.apiService.patch<any>('/auth/profile/', patchPayload).subscribe({
+      next: (updatedData: any) => {
+        this.successMessage = 'Profile data committed successfully!';
+        this.profileData = updatedData;
+        this.userEmail = updatedData.email;
+        localStorage.setItem('email', updatedData.email);
+        this.isEditingProfile = false;
+        this.cdr.detectChanges();
+        setTimeout(() => this.successMessage = '', 4000);
+      },
+      error: (err: any) => {
+        this.errorMessage = err.error?.error || 'Failed to update account information profile layers.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  cancelProfileEditing() {
+  this.isEditingProfile = false;
+  this.fetchUserProfile();
+}
 
   fetchUserGarage() {
     this.apiService.get<any[]>('/garage/').subscribe({

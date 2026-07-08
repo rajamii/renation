@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import '../models/service_model.dart';
 import '../models/slot_model.dart';
+import '../models/garage_model.dart';
 import '../services/api_client.dart';
 import '../services/logger_util.dart';
 import '../providers/auth_provider.dart';
@@ -19,10 +20,11 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   final ApiClient _apiClient = ApiClient();
 
-  final _vehicleModelController = TextEditingController();
-
-  // Directly manage category selection using the embedded items
   ServicePrice? _selectedCategoryPrice;
+
+  List<GarageVehicle> _garageVehicles = [];
+  GarageVehicle? _selectedGarageVehicle;
+  bool _isLoadingGarage = true;
 
   DateTime? _selectedDate;
   List<SlotModel> _slots = [];
@@ -30,12 +32,26 @@ class _BookingScreenState extends State<BookingScreen> {
   SlotModel? _selectedSlot;
 
   @override
-  void dispose() {
-    _vehicleModelController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _fetchGarageVehicles();
   }
 
-  // Fetch slots strictly matching the targeted date selection
+  Future<void> _fetchGarageVehicles() async {
+    try {
+      final response = await _apiClient.dio.get('/garage/');
+      setState(() {
+        _garageVehicles = (response.data as List)
+            .map((v) => GarageVehicle.fromJson(v))
+            .toList();
+        _isLoadingGarage = false;
+      });
+    } catch (e) {
+      AppLogger.log("Error fetching garage", e);
+      setState(() => _isLoadingGarage = false);
+    }
+  }
+
   Future<void> _fetchAvailableSlots(String formattedDate) async {
     setState(() {
       _isLoadingSlots = true;
@@ -110,7 +126,7 @@ class _BookingScreenState extends State<BookingScreen> {
     if (_selectedSlot == null ||
         _selectedDate == null ||
         _selectedCategoryPrice == null ||
-        _vehicleModelController.text.trim().isEmpty) {
+        _selectedGarageVehicle == null) {
       return;
     }
 
@@ -148,8 +164,7 @@ class _BookingScreenState extends State<BookingScreen> {
           'service': widget.service.id,
           'slot': _selectedSlot!.id,
           'requested_date': formattedDate,
-          'vehicle_make_model': _vehicleModelController.text.trim(),
-          'vehicle_category': _selectedCategoryPrice!.categoryCode,
+          'garage_vehicle': _selectedGarageVehicle!.id,
           'user': authProvider.userId,
           'status': 'PENDING',
         },
@@ -179,7 +194,7 @@ class _BookingScreenState extends State<BookingScreen> {
         _selectedSlot != null &&
         _selectedDate != null &&
         _selectedCategoryPrice != null &&
-        _vehicleModelController.text.trim().isNotEmpty;
+        _selectedGarageVehicle != null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('New Booking')),
@@ -188,7 +203,6 @@ class _BookingScreenState extends State<BookingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Service Briefing Card Header
             Card(
               margin: EdgeInsets.zero,
               child: Padding(
@@ -213,7 +227,6 @@ class _BookingScreenState extends State<BookingScreen> {
                             ),
                           ),
                         ),
-                        // Dynamic Slice-inspired Neon Price Tag Banner
                         if (_selectedCategoryPrice != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -227,7 +240,7 @@ class _BookingScreenState extends State<BookingScreen> {
                             child: Text(
                               "₹${_selectedCategoryPrice!.price.toStringAsFixed(0)}",
                               style: const TextStyle(
-                                color: Colors.black,
+                                color: Colors.white,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 16,
                               ),
@@ -244,63 +257,97 @@ class _BookingScreenState extends State<BookingScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 24),
 
-            // Vehicle Structural Data Input Form
-            TextField(
-              controller: _vehicleModelController,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                hintText: 'Vehicle Make & Model (e.g., Sedan, SUV)',
-                prefixIcon: Icon(
-                  Icons.directions_car_filled_outlined,
-                  size: 20,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
+            _isLoadingGarage
+                ? const Center(child: CircularProgressIndicator())
+                : _garageVehicles.isEmpty
+                ? Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.redAccent.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: const Text(
+                      'Your garage is empty. Please add a vehicle in your Profile before booking.',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  )
+                : Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).inputDecorationTheme.fillColor,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<GarageVehicle>(
+                        value: _selectedGarageVehicle,
+                        hint: Text(
+                          'Select Vehicle from Garage',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.color,
+                          ),
+                        ),
+                        isExpanded: true,
+                        dropdownColor: Theme.of(context).cardTheme.color,
+                        icon: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        items: _garageVehicles.map((GarageVehicle vehicle) {
+                          return DropdownMenuItem<GarageVehicle>(
+                            value: vehicle,
+                            child: Text(
+                              '${vehicle.vehicle.brand} ${vehicle.vehicle.name} - ${vehicle.licensePlate}',
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.color,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (GarageVehicle? newValue) {
+                          setState(() {
+                            _selectedGarageVehicle = newValue;
 
-            // Dropdown Populated from embedded list data inside the service object
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              decoration: BoxDecoration(
-                color: Theme.of(context).inputDecorationTheme.fillColor,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<ServicePrice>(
-                  value: _selectedCategoryPrice,
-                  hint: Text(
-                    'Select Vehicle Category',
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                            if (newValue != null) {
+                              try {
+                                _selectedCategoryPrice = widget.service.prices
+                                    .firstWhere(
+                                      (priceObj) =>
+                                          priceObj.categoryCode
+                                              .trim()
+                                              .toUpperCase() ==
+                                          newValue.vehicle.category
+                                              .trim()
+                                              .toUpperCase(),
+                                    );
+                              } catch (e) {
+                                _selectedCategoryPrice = null;
+                                AppLogger.log(
+                                  "No matching pricing found for category: ${newValue.vehicle.category}",
+                                  e,
+                                );
+                              }
+                            } else {
+                              _selectedCategoryPrice = null;
+                            }
+                          });
+                        },
+                      ),
                     ),
                   ),
-                  isExpanded: true,
-                  dropdownColor: Theme.of(context).cardTheme.color,
-                  icon: Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                  items: widget.service.prices.map((ServicePrice priceObj) {
-                    return DropdownMenuItem<ServicePrice>(
-                      value: priceObj,
-                      child: Text(
-                        priceObj.categoryName,
-                        style: TextStyle(
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (ServicePrice? newValue) {
-                    setState(() {
-                      _selectedCategoryPrice = newValue;
-                    });
-                  },
-                ),
-              ),
-            ),
+
             const SizedBox(height: 14),
 
             // Date Picker Trigger Button Container
@@ -348,15 +395,15 @@ class _BookingScreenState extends State<BookingScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 28),
 
-            // Timeline Windows Panel Container logic checks
             if (_selectedDate == null) ...[
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24.0),
                 child: Center(
                   child: Text(
-                    '⚠️ Please pick an operational date first to show available slots.',
+                    'Please pick a date first to show available slots.',
                     style: TextStyle(color: Colors.white38, fontSize: 13),
                     textAlign: TextAlign.center,
                   ),
@@ -369,9 +416,9 @@ class _BookingScreenState extends State<BookingScreen> {
                   context,
                 ).textTheme.titleLarge?.copyWith(fontSize: 15),
               ),
+
               const SizedBox(height: 12),
 
-              // Look for this section inside lib/screens/booking_screen.dart
               _isLoadingSlots
                   ? Center(
                       child: CircularProgressIndicator(
@@ -401,18 +448,15 @@ class _BookingScreenState extends State<BookingScreen> {
                             duration: const Duration(milliseconds: 200),
                             curve: Curves.easeInOut,
                             decoration: BoxDecoration(
-                              // Keeps a subtle dark tint for dark mode, or a solid white fill for light mode
                               color: isSelected
                                   ? (isDark
                                         ? Theme.of(
                                             context,
-                                          ).primaryColor.withOpacity(0.08)
+                                          ).primaryColor.withValues(alpha: 0.08)
                                         : const Color(0xFFF5F5F7))
                                   : Theme.of(context).cardTheme.color,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                // ---> HERE IS THE SHIFT <---
-                                // Snaps to neon green in dark mode, or stark ink-black in light mode when selected
                                 color: isSelected
                                     ? (isDark
                                           ? const Color(0xFFB9FF66)
@@ -425,7 +469,7 @@ class _BookingScreenState extends State<BookingScreen> {
                             ),
                             child: InkWell(
                               onTap: () {
-                                HapticFeedback.selectionClick(); // Adds a subtle, premium physical tick
+                                HapticFeedback.selectionClick();
                                 setState(() => _selectedSlot = slot);
                               },
                               borderRadius: BorderRadius.circular(14),
@@ -469,7 +513,6 @@ class _BookingScreenState extends State<BookingScreen> {
                                         ),
                                       ],
                                     ),
-                                    // Animated Radio-style tracking circle
                                     AnimatedContainer(
                                       duration: const Duration(
                                         milliseconds: 200,

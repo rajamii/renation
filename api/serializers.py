@@ -28,19 +28,20 @@ class UserSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     referral_code = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
+    phone_number = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = User
-        fields = ['email', 'password', 'referral_code']
+        fields = ['email', 'password', 'username', 'first_name', 'last_name', 'referral_code', 'phone_number']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         
         referral_code = validated_data.pop('referral_code', None)
-        
+        phone_number = validated_data.pop('phone_number', None)
         user = User.objects.create_user(**validated_data)
         
-        UserProfile.objects.create(user=user)
+        UserProfile.objects.create(user=user, phone_number=phone_number)
 
         if referral_code:
             try:
@@ -57,10 +58,24 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     referral_code = serializers.CharField(source='profile.referral_code', read_only=True)
+    phone_number = serializers.CharField(source='profile.phone_number', required=False, allow_null=True, allow_blank=True)
+
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'referral_code']
-        read_only_fields = ['email']
+        fields = ['email', 'username', 'first_name', 'last_name', 'referral_code', 'phone_number']
+        read_only_fields = ['first_name', 'last_name', 'referral_code', 'username']
+        
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop('profile', {})
+        
+        instance.email = validated_data.get('email', instance.email)
+        instance.save()
+
+        if 'phone_number' in profile_data:
+            instance.profile.phone_number = profile_data['phone_number']
+            instance.profile.save()
+
+        return instance
 
 # ==========================================
 # SYSTEM LOOKUP & MASTER TRACKING SERIALIZERS

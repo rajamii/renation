@@ -13,6 +13,10 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _referralController = TextEditingController();
   bool _isSignUpMode = false;
   bool _showReferralField = false;
@@ -34,10 +38,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     if (_isSignUpMode) {
-      // --- REGISTRATION FLOW WITH OPTIONAL CODE ---
       bool success = await authProvider.signup(
         email,
         password,
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        username: _usernameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
         referralCode: referral.isNotEmpty ? referral : null,
       );
       setState(() => _isLoading = false);
@@ -128,6 +135,39 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
               if (_isSignUpMode && !_isLoading) ...[
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _firstNameController,
+                  decoration: const InputDecoration(
+                    hintText: 'First Name',
+                    prefixIcon: Icon(Icons.person, size: 20),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _lastNameController,
+                  decoration: const InputDecoration(
+                    hintText: 'Last Name',
+                    prefixIcon: Icon(Icons.person_outline, size: 20),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    hintText: 'Username',
+                    prefixIcon: Icon(Icons.alternate_email, size: 20),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    hintText: 'Phone Number',
+                    prefixIcon: Icon(Icons.phone, size: 20),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 AnimatedCrossFade(
                   duration: const Duration(milliseconds: 200),

@@ -13,6 +13,7 @@ class MyBookingsTab extends StatefulWidget {
 class _MyBookingsTabState extends State<MyBookingsTab> {
   final ApiClient _apiClient = ApiClient();
   List<dynamic> _userBookings = [];
+  Map<int, dynamic> _garageMap = {};
   bool _isLoading = true;
 
   @override
@@ -23,13 +24,28 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
 
   Future<void> _loadUserBookings() async {
     try {
-      final response = await _apiClient.dio.get('/bookings/');
+      final response = await Future.wait([
+        _apiClient.dio.get('/bookings/'),
+        _apiClient.dio.get('/garage/'),
+      ]);
+
+      final List<dynamic> bookingsData = response[0].data ?? [];
+      final List<dynamic> garageData = response[1].data ?? [];
+
+      final Map<int, dynamic> tempGarageMap = {};
+      for (var item in garageData) {
+        if (item['id'] != null) {
+          tempGarageMap[item['id']] = item;
+        }
+      }
+
       setState(() {
-        _userBookings = response.data ?? [];
+        _userBookings = bookingsData;
+        _garageMap = tempGarageMap;
         _isLoading = false;
       });
     } catch (e) {
-      AppLogger.log("Failed to load pipeline tracking", e);
+      AppLogger.log("Failed to Load Data", e);
       setState(() => _isLoading = false);
     }
   }
@@ -37,26 +53,60 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
   Color _getStatusColor(String status) {
     switch (status.toUpperCase()) {
       case 'PENDING':
-        return Colors.amberAccent;
+        return Colors.deepOrangeAccent;
       case 'CONFIRMED':
-        return const Color(0xFFB9FF66); // Neon Green match
+        return const Color(0xFFB9FF66);
       case 'DELIVERED':
-        return Colors.blueAccent;
-      case 'CANCELLED':
-        return Colors.redAccent;
+        return Colors.green;
+      case 'WORK IN PROGRESS':
+        return Colors.yellow;
       default:
         return Colors.grey;
     }
   }
 
+  String _getVehicleName(dynamic booking) {
+    final int? vehicleId = booking['garage_vehicle'];
+    if (vehicleId != null && _garageMap.containsKey(vehicleId)) {
+      final details = _garageMap[vehicleId]['vehicle_details'];
+      if (details != null) {
+        return "${details['brand'] ?? ''} ${details['name'] ?? ''}".trim();
+      }
+    }
+    return 'Unknown Vehicle';
+  }
+
+  String _getVehicleCategory(dynamic booking) {
+    final int? vehicleId = booking['garage_vehicle'];
+    if (vehicleId != null && _garageMap.containsKey(vehicleId)) {
+      final details = _garageMap[vehicleId]['vehicle_details'];
+      if (details != null) {
+        return details['category_name'] ?? details['category'] ?? 'N/A';
+      }
+    }
+    return 'N/A';
+  }
+
+  String _getLicensePlate(dynamic booking) {
+    final int? vehicleId = booking['garage_vehicle'];
+    if (vehicleId != null && _garageMap.containsKey(vehicleId)) {
+      return _garageMap[vehicleId]['license_plate'] ?? 'N/A';
+    }
+    return 'N/A';
+  }
+
   void _showQrModal(BuildContext context, dynamic booking) {
+    final String vehicleName = _getVehicleName(booking);
+    final String category = _getVehicleCategory(booking);
+    final String licensePlate = _getLicensePlate(booking);
+
     final String qrPayload =
         "Booking ID: #${booking['id']}\n"
-        "      Vehicle: ${booking['vehicle_make_model'] ?? 'N/A'}\n"
-        "      License Plate: ${booking['license_plate'] ?? 'null'}\n"
-        "      Category: ${booking['vehicle_category'] ?? 'N/A'}\n"
-        "      Date: ${booking['requested_date'] ?? 'N/A'}\n"
-        "      Slot Reference: Slot #${booking['slot']}";
+        "Vehicle: $vehicleName\n"
+        "License Plate: $licensePlate\n"
+        "Category: $category\n"
+        "Date: ${booking['requested_date'] ?? 'N/A'}\n"
+        "Slot Reference: ${booking['slot_start'] ?? 'Slot'} - ${booking['slot_end'] ?? ''}";
 
     showModalBottomSheet(
       context: context,
@@ -192,6 +242,9 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
         final String status = booking['status'] ?? 'PENDING';
         final statusColor = _getStatusColor(status);
 
+        final String vehicleName = _getVehicleName(booking);
+        final String vehicleCategory = _getVehicleCategory(booking);
+
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -209,12 +262,12 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        "${booking['vehicle_make_model']} • ${booking['vehicle_category']}",
+                        "$vehicleName • $vehicleCategory",
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        "📅 ${booking['requested_date']}",
+                        "${booking['requested_date']}${booking['slot_start'] != null ? ' • ${booking['slot_start']} - ${booking['slot_end']}' : ''}",
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(
                             context,
@@ -230,7 +283,6 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // Pill Badge for Status tracking
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -255,7 +307,6 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // Action Trigger for QR Code modal
                     IconButton(
                       icon: const Icon(Icons.qr_code_2_rounded, size: 28),
                       color: Theme.of(

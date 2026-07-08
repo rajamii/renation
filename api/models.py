@@ -64,14 +64,14 @@ class CustomUserManager(BaseUserManager):
 
 
 class User(AbstractUser):
-    username = None
+    username = models.CharField(max_length=150, unique=True, null=True, blank=True)
     email = models.EmailField(unique=True)
     role = models.ForeignKey(RoleMaster, on_delete=models.PROTECT, related_name='assigned_users')
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['username']
 
     def __str__(self):
         return f"{self.email} ({self.role_id})"
@@ -80,6 +80,7 @@ class User(AbstractUser):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     referral_code = models.CharField(max_length=10, unique=True, default=generate_referral_code)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
 
 # ==========================================
 # MASTER VEHICLE DIRECTORY

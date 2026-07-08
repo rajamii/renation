@@ -12,17 +12,21 @@ import { AuthService } from '../services/auth.service';
 })
 export class LoginComponent {
   // This defines the toggle state for the view
-  isLogin = true; 
+  isLogin = true;
 
   // Form input bindings
   email = '';
   password = '';
+  firstName = '';
+  lastName = '';
+  username = '';
+  phoneNumber = '';
   referralCode = '';
 
   constructor(
-    private authService: AuthService, 
+    private authService: AuthService,
     private router: Router
-  ) {}
+  ) { }
 
   onSubmit() {
     const credentials = { email: this.email, password: this.password };
@@ -40,13 +44,24 @@ export class LoginComponent {
         error: (err) => console.error('Authentication failed', err)
       });
     } else {
-      // Execute signup/registration sequence
-      this.authService.register({ ...credentials, referralCode: this.referralCode }).subscribe({
+      const registerPayload = {
+        ...credentials,
+        username: this.username,
+        first_name: this.firstName,
+        last_name: this.lastName,
+        phone_number: this.phoneNumber,
+        referral_code: this.referralCode ? this.referralCode : null
+      };
+
+      this.authService.register(registerPayload).subscribe({
         next: () => {
-          // Switch to login view smoothly upon successful registration
           this.isLogin = true;
           this.password = '';
           this.referralCode = '';
+          this.firstName = '';
+          this.lastName = '';
+          this.username = '';
+          this.phoneNumber = '';
         },
         error: (err) => console.error('Registration failed', err)
       });

@@ -15,6 +15,8 @@ class AuthProvider with ChangeNotifier {
   String _firstName = '';
   String _lastName = '';
   String _email = '';
+  String _username = '';
+  String _phoneNumber = '';
   String _referralCode = '';
   int _completedBookingsCount = 0;
 
@@ -25,6 +27,8 @@ class AuthProvider with ChangeNotifier {
   String get firstName => _firstName;
   String get lastName => _lastName;
   String get email => _email;
+  String get username => _username;
+  String get phoneNumber => _phoneNumber;
   String get referralCode => _referralCode;
   int get completedBookingsCount => _completedBookingsCount;
 
@@ -81,7 +85,6 @@ class AuthProvider with ChangeNotifier {
       if (accessToken != null) {
         Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
 
-        // Guard against parsing exceptions safely using modern numeric casting
         final rawUid = decodedToken['user_id'];
         if (rawUid != null) {
           if (rawUid is int) {
@@ -97,6 +100,8 @@ class AuthProvider with ChangeNotifier {
         _firstName = response.data['first_name'] ?? '';
         _lastName = response.data['last_name'] ?? '';
         _email = response.data['email'] ?? '';
+        _username = response.data['username'] ?? '';
+        _phoneNumber = response.data['phone_number'] ?? '';
         _referralCode = response.data['referral_code'] ?? '';
         _completedBookingsCount = response.data['completed_bookings'] ?? 0;
         notifyListeners();
@@ -106,23 +111,21 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Update First Name and Last Name on the Django backend
-  Future<bool> updateUserProfile(String firstName, String lastName) async {
+  Future<bool> updateUserProfile(String email, String phoneNumber) async {
     try {
       final response = await _apiClient.dio.patch(
         '/auth/profile/',
-        data: {'first_name': firstName, 'last_name': lastName},
+        data: {'email': email, 'phone_number': phoneNumber},
       );
 
       if (response.statusCode == 200) {
-        _firstName = firstName;
-        _lastName = lastName;
+        _email = email;
+        _phoneNumber = phoneNumber;
         notifyListeners();
         return true;
       }
       return false;
     } catch (e) {
-      AppLogger.log("Error updating profile", e);
       return false;
     }
   }
@@ -130,6 +133,10 @@ class AuthProvider with ChangeNotifier {
   Future<bool> signup(
     String email,
     String password, {
+    String? firstName,
+    String? lastName,
+    String? username,
+    String? phoneNumber,
     String? referralCode,
   }) async {
     try {
@@ -138,14 +145,14 @@ class AuthProvider with ChangeNotifier {
         data: {
           'email': email,
           'password': password,
-          if (referralCode != null && referralCode.isNotEmpty)
-            'referral_code': referralCode,
+          if (firstName?.isNotEmpty ?? false) 'first_name': firstName,
+          if (lastName?.isNotEmpty ?? false) 'last_name': lastName,
+          if (username?.isNotEmpty ?? false) 'username': username,
+          if (phoneNumber?.isNotEmpty ?? false) 'phone_number': phoneNumber,
+          if (referralCode?.isNotEmpty ?? false) 'referral_code': referralCode,
         },
       );
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        return true;
-      }
-      return false;
+      return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
       AppLogger.log("Signup Error", e);
       return false;

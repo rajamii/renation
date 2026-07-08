@@ -32,6 +32,11 @@
         class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">
         My Garage
       </button>
+      <button (click)="setTab('profile')" [class.text-white]="activeTab === 'profile'"
+        [class.border-white]="activeTab === 'profile'"
+        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">
+        Profile Ledger
+      </button>
       <button (click)="setTab('rewards')" [class.text-white]="activeTab === 'rewards'"
         [class.border-white]="activeTab === 'rewards'"
         class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">
@@ -295,6 +300,96 @@
           }
         </div>
       </div>
+    </div>
+    }
+
+    @if (activeTab === 'profile') {
+    <div class="max-w-2xl mx-auto bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl animate-fade-in">
+
+      <div class="flex justify-between items-center mb-6 pb-4 border-b border-neutral-800">
+        <div>
+          <h2 class="text-base font-medium text-white">Account Portfolio Matrix</h2>
+          <p class="text-xs text-neutral-400">View And Edit Profile Data.
+          </p>
+        </div>
+
+        <button type="button" (click)="isEditingProfile ? cancelProfileEditing() : isEditingProfile = true"
+          class="px-2.5 py-1 text-xs font-medium rounded border transition cursor-pointer"
+          [ngClass]="isEditingProfile ? 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:bg-neutral-900' : 'bg-white border-white text-neutral-950 hover:bg-neutral-200'">
+          {{ isEditingProfile ? 'Cancel Editing' : 'Modify Information' }}
+        </button>
+      </div>
+
+      <form (ngSubmit)="saveProfileChanges()" class="space-y-4">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">First Name
+              (Read-Only)</label>
+            <div
+              class="w-full bg-neutral-950/60 border border-neutral-900/50 rounded px-3 py-2 text-xs text-neutral-400 font-medium">
+              {{ profileData.first_name || 'N/A' }}
+            </div>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Last Name
+              (Read-Only)</label>
+            <div
+              class="w-full bg-neutral-950/60 border border-neutral-900/50 rounded px-3 py-2 text-xs text-neutral-400 font-medium">
+              {{ profileData.last_name || 'N/A' }}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">User Identifier
+            (Read-Only)</label>
+          <div
+            class="w-full bg-neutral-950/60 border border-neutral-900/50 rounded px-3 py-2 text-xs text-neutral-400 font-mono">
+            @{{ profileData.username || 'unknown_alias' }}
+          </div>
+        </div>
+
+        <hr class="border-neutral-900 my-2" />
+
+        <div>
+          <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Email Destination Address
+            *</label>
+          <input type="email" name="profileEmail" [(ngModel)]="profileData.email" [disabled]="!isEditingProfile"
+            required
+            class="w-full bg-neutral-950 border rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 disabled:opacity-50 disabled:bg-neutral-950/30 transition-all"
+            [class.border-neutral-800]="!isEditingProfile" [class.border-neutral-700]="isEditingProfile">
+        </div>
+
+        <div>
+          <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Mobile Contact Phone Number
+            *</label>
+          <input type="text" name="profilePhone" [(ngModel)]="profileData.phone_number" [disabled]="!isEditingProfile"
+            required placeholder="No phone registered"
+            class="w-full bg-neutral-950 border rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 disabled:opacity-50 disabled:bg-neutral-950/30 transition-all"
+            [class.border-neutral-800]="!isEditingProfile" [class.border-neutral-700]="isEditingProfile">
+        </div>
+
+        @if (isEditingProfile) {
+        <div class="pt-4 border-t border-neutral-800 flex justify-end">
+          <button type="submit"
+            class="w-full sm:w-auto px-5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-all cursor-pointer shadow-md">
+            Commit Profiles Changes
+          </button>
+        </div>
+        }
+
+      </form>
+
+      <div
+        class="mt-6 pt-4 border-t border-neutral-950 flex items-center justify-between text-xs text-neutral-500 font-mono">
+        <span>Referral Code</span>
+        <span
+          class="text-neutral-300 font-sans tracking-wide bg-neutral-950 px-2 py-1 rounded border border-neutral-900">
+          {{ profileData.referral_code || 'None' }}
+        </span>
+      </div>
+
     </div>
     }
 

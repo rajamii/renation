@@ -84,7 +84,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFB9FF66), width: 2),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
       ),
     );
@@ -94,8 +94,15 @@ class AppTheme {
     return ThemeData(
       brightness: Brightness.light,
       scaffoldBackgroundColor: const Color(0xFFFBFBFD),
-      primaryColor: const Color(0xFF1A1A1A),
+      primaryColor: AppColors.primary,
       fontFamily: GoogleFonts.inter().fontFamily,
+
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.primary,
+        secondary: AppColors.primary,
+        surface: Colors.white,
+        onPrimary: Colors.black,
+      ),
 
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFFFBFBFD),
@@ -168,17 +175,14 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(
-            color: Color(0xFF1A1A1A),
-            width: 2,
-          ), // Focus snaps to solid black
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1A1A1A), // Pure stark contrast black
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.black,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 26),
           shape: RoundedRectangleBorder(

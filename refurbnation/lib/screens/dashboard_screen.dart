@@ -108,7 +108,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                // Notice we removed all custom styling. It will automatically be neon green!
                 ElevatedButton(
                   onPressed: () {
                     Navigator.push(

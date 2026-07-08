@@ -30,8 +30,12 @@ export class AuthService {
     );
   }
 
-  register(credentials: any) {
-    return this.http.post(`${this.apiUrl}/auth/register/`, credentials);
+  register(userData: Record<string, any>) {
+    return this.http.post(`${this.apiUrl}/auth/register/`, userData);
+  }
+
+  updateProfile(profileData: {email: string, phone_number: string}) {
+    return this.http.patch(`${this.apiUrl}/auth/profile/`, profileData);
   }
 
   logout() {
