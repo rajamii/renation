@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 from .models import (
     Service, 
     ServicePriceMatrix, 
-    AppointmentSlot, 
     VehicleMaster,
     Garage,
     Booking, 
@@ -13,6 +12,7 @@ from .models import (
     UnlockedDiscount,
     Referral,
     UserProfile,
+    DigitalVoucher
 )
 
 User = get_user_model()
@@ -162,14 +162,14 @@ class ServiceSerializer(serializers.ModelSerializer):
 # WORKSHOP CORE OPERATIONAL SERIALIZERS
 # ==========================================
 
-class AppointmentSlotSerializer(serializers.ModelSerializer):
+class DigitalVoucherSerializer(serializers.ModelSerializer):
     class Meta:
-        model = AppointmentSlot
-        fields = '__all__'
-
+        model = DigitalVoucher
+        fields = ['id', 'perk_description', 'is_redeemed', 'created_at']
 
 class BookingSerializer(serializers.ModelSerializer):
     status = serializers.SlugRelatedField(slug_field='code', queryset=BookingStatusMaster.objects.all(), required=False)
+    voucher = DigitalVoucherSerializer(read_only=True, allow_null=True)
     garage_vehicle = serializers.PrimaryKeyRelatedField(queryset=Garage.objects.all(), required=True)
     status_name = serializers.CharField(source='status.name', read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
@@ -185,6 +185,7 @@ class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = '__all__'
+        read_only_fields = ['user', 'status', 'final_price', 'payment_window_start']
 
 # ==========================================
 # REFERRAL & LOYALTY SERIALIZERS

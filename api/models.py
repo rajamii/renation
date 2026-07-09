@@ -140,29 +140,20 @@ class ServicePriceMatrix(models.Model):
         return f"{self.service.name} - {self.category.name}: ₹{self.price_in_rupees}"
 
 
-class AppointmentSlot(models.Model):
-    """Operational booking windows managed by staff users"""
-    date = models.DateField()
-    start_time = models.TimeField()
-    end_time = models.TimeField()
-    max_capacity = models.PositiveIntegerField(default=1)
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        ordering = ['date', 'start_time']
-
-    def __str__(self):
-        return f"{self.date} ({self.start_time} - {self.end_time})"
-
-
 class Booking(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
     service = models.ForeignKey(Service, on_delete=models.PROTECT)
     garage_vehicle = models.ForeignKey(Garage, on_delete=models.PROTECT, related_name='bookings', null=True, blank=True)
-    requested_date = models.DateField()
     
-    slot = models.ForeignKey(AppointmentSlot, on_delete=models.PROTECT, related_name='bookings', blank=True, null=True)
+    requested_date = models.DateField()
+    requested_time = models.TimeField(null=True, blank=True)
+
+    assigned_date = models.DateField(null=True, blank=True)
+    assigned_time = models.TimeField(null=True, blank=True)
+    
     status = models.ForeignKey(BookingStatusMaster, on_delete=models.PROTECT, related_name='bookings')
+    payment_window_start = models.DateTimeField(null=True, blank=True)
+    
     estimated_delivery_timeline = models.CharField(max_length=100, blank=True, null=True)
     final_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     
@@ -201,6 +192,18 @@ class Referral(models.Model):
 
     def __str__(self):
         return f"{self.referrer.email} -> {self.referee.email} ({self.status})"
+    
+
+
+class DigitalVoucher(models.Model):
+    booking = models.OneToOneField('Booking', on_delete=models.CASCADE, related_name='voucher')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='voucher')
+    perk_description = models.CharField(max_length=255, default="Free Coffee & Console Lounge Access")
+    is_redeemed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Voucher #{self.id} for Booking #{self.booking_id}"
 
 
 class UnlockedDiscount(models.Model):

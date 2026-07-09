@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Service, ServicePriceMatrix, AppointmentSlot, Booking, BookingLog
+from .models import User, Service, ServicePriceMatrix, Booking, BookingLog
 
 class ServicePriceMatrixInline(admin.TabularInline):
     model = ServicePriceMatrix
@@ -23,5 +23,4 @@ class BookingAdmin(admin.ModelAdmin):
         return obj.garage_vehicle.vehicle.category.name
 
 admin.site.register(User)
-admin.site.register(AppointmentSlot)
 admin.site.register(BookingLog)

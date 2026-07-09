@@ -3,7 +3,6 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     ServiceViewSet, 
-    AppointmentSlotViewSet, 
     BookingViewSet, 
     ConfigurationViewSet, 
     AdminDashboardViewSet,
@@ -21,7 +20,6 @@ router = DefaultRouter()
 
 # Operational pipelines mapping
 router.register(r'services', ServiceViewSet, basename='services')
-router.register(r'slots', AppointmentSlotViewSet, basename='slots')
 router.register(r'bookings', BookingViewSet, basename='bookings')
 
 # System Configuration lookup mappings

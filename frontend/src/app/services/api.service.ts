@@ -12,24 +12,17 @@ export class ApiService {
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Generic GET request
-   * @param path The endpoint path (e.g., '/bookings/')
-   * @param params Optional query parameters
-   */
+  // Generic GET request
   get<T>(path: string, params?: HttpParams): Observable<T> {
     return this.http.get<T>(`${this.apiUrl}${path}`, { params });
   }
 
-  /**
-   * Generic POST request
-   * @param path The endpoint path (e.g., '/bookings/')
-   * @param body The data to send
-   */
+  // Generic POST request
   post<T>(path: string, body: any = {}): Observable<T> {
     return this.http.post<T>(`${this.apiUrl}${path}`, body);
   }
 
+  // Generic PATCH request
   patch<T>(endpoint: string, payload: any): Observable<T> {
     return this.http.patch<T>(`${this.apiUrl}${endpoint}`, payload);
   }

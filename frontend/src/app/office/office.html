@@ -1,99 +1,200 @@
 <div class="min-h-screen bg-neutral-950 text-neutral-100 font-sans antialiased">
+
+  <!-- Navigation Header Line -->
   <header class="border-b border-neutral-900 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-40">
     <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <span class="text-xs uppercase font-semibold tracking-widest bg-blue-950 text-blue-400 border border-blue-900 px-2 py-0.5 rounded">OPS</span>
-        <h1 class="text-sm font-medium tracking-tight text-white">RefurbNation Operations Center</h1>
+        <span class="text-xs uppercase font-semibold tracking-widest bg-white text-black px-2 py-0.5 rounded">OPS</span>
+        <h1 class="text-sm font-medium tracking-tight text-white">RefurbNation Office Console</h1>
       </div>
-      <button (click)="logout()" class="text-xs text-neutral-500 hover:text-rose-400 transition-colors duration-200 cursor-pointer">
+      <button (click)="logout()"
+        class="text-xs text-neutral-500 hover:text-rose-400 transition-colors duration-200 cursor-pointer bg-transparent border-none">
         Disconnect Console
       </button>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <div class="space-y-6">
-      <div class="bg-neutral-900/30 border border-neutral-900 p-6 rounded-2xl">
-        <h3 class="text-sm font-medium text-white mb-1">Open Appointment Window</h3>
-        <p class="text-[11px] text-neutral-500 mb-4 leading-relaxed">Publish workspace capacity allocation blocks for clients scheduling requests.</p>
-        
-        <form (ngSubmit)="createSlot()" class="space-y-4">
-          <div><label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Target Date</label><input [(ngModel)]="newSlot.date" name="date" type="date" required class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"></div>
-          <div class="grid grid-cols-2 gap-3">
-            <div><label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Start Time</label><input [(ngModel)]="newSlot.start_time" name="start" type="time" required class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"></div>
-            <div><label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">End Time</label><input [(ngModel)]="newSlot.end_time" name="end" type="time" required class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"></div>
-          </div>
-          <div><label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Max Vehicle Capacity</label><input [(ngModel)]="newSlot.max_capacity" name="capacity" type="number" min="1" required class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"></div>
-          <button type="submit" class="w-full bg-white text-black text-xs font-medium py-2.5 rounded-xl hover:bg-neutral-200 transition-all cursor-pointer">Open Slot Window</button>
-        </form>
-      </div>
+  <!-- Main Workspace -->
+  <main class="max-w-6xl mx-auto px-6 py-12">
 
-      <div class="bg-neutral-900/30 border border-neutral-900 rounded-2xl p-6">
-        <h4 class="text-xs font-medium text-neutral-300 uppercase tracking-wider mb-3">Active Operational Slots</h4>
-        <div class="space-y-2 max-h-64 overflow-y-auto pr-1 scrollbar-none">
-          <div *ngFor="let s of slots" class="p-3 bg-neutral-950 border border-neutral-900 rounded-xl flex justify-between items-center text-xs">
-            <div><p class="font-medium text-neutral-200">{{ s.date | date:'mediumDate' }}</p><p class="text-[10px] text-neutral-500 font-mono">{{ s.start_time | slice:0:5 }} - {{ s.end_time | slice:0:5 }}</p></div>
-            <span class="text-[10px] bg-neutral-900 text-neutral-400 border border-neutral-800 px-2 py-0.5 rounded">Cap: {{ s.max_capacity }}</span>
+    <!-- Active Pipeline Queue Section -->
+    <div class="bg-neutral-900/30 border border-neutral-900 rounded-2xl overflow-hidden">
+
+      <!-- Control Sub-Header Section -->
+      <div
+        class="p-6 border-b border-neutral-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-neutral-950/20">
+        <div>
+          <h2 class="text-base font-medium text-white">Live Requests & Detailing Pipeline</h2>
+          <p class="text-xs text-neutral-500 mt-1">Review preferences, assign production slots, and track vehicle status
+            flags.</p>
+        </div>
+
+        <!-- Filter Controls & Action Elements -->
+        <div class="flex items-center gap-4">
+          <div>
+            <select name="statusFilter" [(ngModel)]="selectedStatusFilter"
+              class="bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-1.5 text-xs text-neutral-300 focus:outline-none focus:border-neutral-700 w-full sm:w-auto cursor-pointer appearance-none">
+              <option value="ALL">All Requests</option>
+              <option value="PENDING">Pending</option>
+              <option value="AWAITING PAYMENT">Awaiting Payment</option>
+              <option value="CONFIRMED">Confirmed</option>
+              <option value="ARRIVED">Vehicle Arrived</option>
+              <option value="WORK IN PROGRESS">Men At Work</option>
+              <option value="DELIVERED">Delivered</option>
+            </select>
           </div>
-          <p *ngIf="slots.length === 0" class="text-xs text-neutral-600 text-center py-4">No active scheduling windows initialized.</p>
+
+          <!-- Working Sync Reload Trigger Badge -->
+          <button (click)="fetchBookings()" [disabled]="isSyncing"
+            class="text-[10px] font-mono uppercase tracking-wider bg-transparent border border-neutral-800 hover:border-neutral-700 text-neutral-400 px-2.5 py-1.5 rounded-xl transition-all cursor-pointer disabled:opacity-50">
+            <span class="inline-block" [class.animate-spin]="isSyncing">🔄</span>
+            {{ isSyncing ? 'Syncing...' : 'Sync Active' }}
+          </button>
         </div>
       </div>
-    </div>
 
-    <div class="lg:col-span-2 bg-neutral-900/30 border border-neutral-900 rounded-2xl overflow-hidden h-fit">
-      <div class="p-6 border-b border-neutral-900 flex justify-between items-center"><h2 class="text-base font-medium text-white">Workshop Booking Stream</h2><button (click)="fetchBookings()" class="text-xs text-neutral-400 hover:text-white underline cursor-pointer">Reload Stream</button></div>
-      <div class="divide-y divide-neutral-900">
-        <div *ngFor="let b of bookings" class="p-6 hover:bg-neutral-900/10 transition-all space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div class="flex items-center gap-2">
-                <h3 class="text-sm font-medium text-white">ID Reference: #{{ b.id }}</h3>
-                <span class="text-[10px] px-2 py-0.5 rounded border font-mono bg-neutral-950 text-emerald-400 border-neutral-900">{{ b.final_price | currency:'INR':'symbol':'1.0-0' }}</span>
-              </div>
-              <p class="text-xs text-neutral-400 font-light mt-0.5">Treatment Requested: <span class="font-normal text-neutral-200">{{ b.service_name }}</span></p>
-            </div>
-            <div class="flex items-center gap-3">
-              <span class="text-[10px] px-2.5 py-1 rounded-full font-medium uppercase tracking-wider bg-neutral-950 text-neutral-400 border border-neutral-800">{{ b.status_name }}</span>
-              <button (click)="openUpdateModal(b)" class="text-xs bg-neutral-900 border border-neutral-800 text-neutral-200 px-3 py-1.5 rounded-xl hover:bg-neutral-800 transition-all cursor-pointer">Dispatch Track Updates</button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-neutral-900/40 text-[11px] font-mono text-neutral-500">
-            <div><span class="block text-[9px] uppercase tracking-wider text-neutral-600 font-sans">Vehicle Unit</span><span class="text-neutral-300">{{ b.vehicle_make_model }}</span></div>
-            <div><span class="block text-[9px] uppercase tracking-wider text-neutral-600 font-sans">License Plate</span><span class="text-neutral-300 uppercase">{{ b.vehicle_license_plate || 'N/A' }}</span></div>
-            <div><span class="block text-[9px] uppercase tracking-wider text-neutral-600 font-sans">Requested Date</span><span class="text-neutral-300">{{ b.requested_date | date:'mediumDate' }}</span></div>
-            <div><span class="block text-[9px] uppercase tracking-wider text-neutral-600 font-sans">Timeline Target</span><span class="text-neutral-300">{{ b.estimated_delivery_timeline || 'Awaiting evaluation' }}</span></div>
-          </div>
-        </div>
-        <p *ngIf="bookings.length === 0" class="text-sm text-neutral-500 text-center py-12">No active bookings detected inside the repository matrix pipeline stream.</p>
+      <!-- List Representation Segment -->
+      <div class="divide-y divide-neutral-900 overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[800px]">
+          <thead>
+            <tr
+              class="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider bg-neutral-950/40 border-b border-neutral-900">
+              <th class="px-6 py-3.5">ID</th>
+              <th class="px-6 py-3.5">Client Node</th>
+              <th class="px-6 py-3.5">Identifier</th>
+              <th class="px-6 py-3.5">Timeline Preference</th>
+              <th class="px-6 py-3.5">Workflow Status</th>
+              <th class="px-6 py-3.5">Delivery Target</th>
+              <th class="px-6 py-3.5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-neutral-900/60">
+            <!-- Bound to the data-filter algorithm pipe array output -->
+            <tr *ngFor="let booking of getFilteredBookings()" class="hover:bg-neutral-900/10 transition-all">
+              <td class="px-6 py-4 font-mono text-xs text-neutral-600">#{{ booking.id }}</td>
+              <td class="px-6 py-4 font-medium text-neutral-200 text-sm">{{ booking.user_email || booking.user }}</td>
+              <td class="px-6 py-4 font-mono text-xs text-neutral-400">{{ booking.vehicle_license_plate || '—' }}</td>
+              <td class="px-6 py-4 text-xs leading-relaxed text-neutral-300">
+                <span class="block font-medium">Date: {{ booking.requested_date }}</span>
+                <span *ngIf="booking.requested_time" class="block text-[10px] text-neutral-500 mt-0.5">Pref Time: {{
+                  booking.requested_time }}</span>
+                <span *ngIf="booking.assigned_date" class="block text-[10px] text-emerald-400 mt-0.5 font-mono">
+                  Scheduled: {{ booking.assigned_date }} @ {{ booking.assigned_time }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <span [class.text-amber-400]="booking.status === 'PENDING'"
+                  [class.border-amber-900/50]="booking.status === 'PENDING'"
+                  [class.bg-amber-950/20]="booking.status === 'PENDING'"
+                  [class.text-sky-400]="booking.status === 'AWAITING PAYMENT'"
+                  [class.border-sky-900/50]="booking.status === 'AWAITING PAYMENT'"
+                  [class.bg-sky-950/20]="booking.status === 'AWAITING PAYMENT'"
+                  [class.text-emerald-400]="booking.status === 'CONFIRMED'"
+                  [class.border-emerald-900/50]="booking.status === 'CONFIRMED'"
+                  [class.bg-emerald-950/20]="booking.status === 'CONFIRMED'"
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-mono tracking-wider uppercase border bg-neutral-900 text-neutral-400 border-neutral-800">
+                  {{ booking.status }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-xs font-mono text-neutral-400">{{ booking.estimated_delivery_timeline || '—' }}
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button (click)="openUpdateModal(booking)"
+                  class="border border-neutral-800 text-neutral-400 hover:text-white px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-neutral-900/40 transition-all cursor-pointer bg-transparent">
+                  Manage State
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="getFilteredBookings().length === 0">
+              <td colspan="7" class="px-6 py-12 text-center text-xs text-neutral-500 tracking-wide font-mono">No active
+                pipeline configurations match selected filter context.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </main>
 
-  <div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" *ngIf="selectedBooking">
-    <div class="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl space-y-4">
-      <div class="flex justify-between items-center border-b border-neutral-800 pb-3"><h3 class="text-sm font-medium text-white">Update Dispatch Context #{{ selectedBooking.id }}</h3><button (click)="closeModal()" class="text-neutral-500 hover:text-white transition-colors cursor-pointer text-sm">✕</button></div>
-      
-      <form (ngSubmit)="submitStatusUpdate()" class="space-y-4 text-xs">
+  <!-- MODAL LIFE-CYCLE CONFIGURATOR PANEL -->
+  <div *ngIf="selectedBooking"
+    class="fixed inset-0 bg-neutral-950/60 backdrop-blur-md flex justify-center items-center z-50 transition-all duration-200">
+    <div
+      class="bg-neutral-950 border border-neutral-900 rounded-2xl shadow-2xl w-full max-w-md p-6 mx-4 transform scale-100">
+
+      <div class="flex justify-between items-start border-b border-neutral-900 pb-4 mb-6">
         <div>
-          <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Set Pipeline Workflow Status</label>
-          <select [(ngModel)]="updatingStatus" name="status" class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none">
-            <option *ngFor="let s of statuses" [value]="s.code">{{ s.name }}</option>
-          </select>
+          <h3 class="text-sm font-medium text-white">Advance Operational Pipeline</h3>
+          <p class="text-[10px] text-neutral-500 font-mono mt-1">CONTEXT NODE: <span class="text-neutral-400">#{{
+              selectedBooking.id }}</span></p>
         </div>
-        <div>
-          <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Assigned Operational Slot Window</label>
-          <select [(ngModel)]="updatingSlotId" name="slot" class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none">
-            <option [ngValue]="null">Hold in Allocation Queue</option>
-            <option *ngFor="let s of slots" [value]="s.id">{{ s.date }} ({{ s.start_time | slice:0:5 }} - {{ s.end_time | slice:0:5 }})</option>
-          </select>
+      </div>
+
+      <div class="space-y-5">
+        <div
+          class="bg-neutral-900/40 border border-neutral-900 p-4 rounded-xl flex items-center justify-between text-xs">
+          <div>
+            <p class="text-[10px] font-mono text-neutral-500 uppercase">Current Stage</p>
+            <p class="text-amber-400 font-medium mt-0.5 font-mono">{{ selectedBooking.status }}</p>
+          </div>
+          <div class="text-neutral-700">➔</div>
+          <div class="text-right">
+            <p class="text-[10px] font-mono text-neutral-500 uppercase">Target Action Stage</p>
+            <p class="text-emerald-400 font-bold mt-0.5 font-mono">
+              {{ selectedBooking.status === 'PENDING' ? 'AWAITING PAYMENT' :
+              selectedBooking.status === 'WORK IN PROGRESS' ? 'FINAL BILLING' :
+              selectedBooking.status === 'AWAITING PAYMENT' ? 'SETTLED & PASSED' : 'ADVANCE STAGE' }}
+            </p>
+          </div>
         </div>
-        <div><label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Estimated Delivery Timeline</label><input [(ngModel)]="updatingTimeline" name="timeline" type="text" placeholder="e.g. 2 Hours, Tomorrow Morning" class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none"></div>
-        <div class="flex justify-end gap-3 pt-2">
-          <button type="button" (click)="closeModal()" class="px-4 py-2 bg-neutral-950 border border-neutral-800 text-neutral-400 rounded-xl hover:text-white transition-all cursor-pointer">Cancel</button>
-          <button type="submit" class="px-4 py-2 bg-white text-black font-medium rounded-xl hover:bg-neutral-200 transition-all cursor-pointer">Commit Progress Log</button>
+
+        <div *ngIf="selectedBooking.status === 'PENDING'"
+          class="space-y-4 bg-neutral-900/20 border border-neutral-900 p-4 rounded-xl">
+          <label class="text-[10px] font-medium uppercase tracking-wider text-neutral-500">Schedule Assignment Boundary
+            Required</label>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-[9px] font-mono text-neutral-500">ASSIGNED DATE</label>
+              <input type="date" [(ngModel)]="updatingAssignedDate"
+                class="bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all w-full">
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-[9px] font-mono text-neutral-500">ASSIGNED TIME</label>
+              <input type="time" [(ngModel)]="updatingAssignedTime"
+                class="bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all w-full">
+            </div>
+          </div>
         </div>
-      </form>
+
+        <div *ngIf="selectedBooking.status === 'AWAITING PAYMENT'"
+          class="bg-amber-950/10 border border-amber-900/30 p-4 rounded-xl space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs font-medium text-amber-200">Cash Payment</p>
+              <p class="text-[10px] text-neutral-500 mt-0.5">Select this if the customer is paying right now with
+                Cash/POS at desk.</p>
+            </div>
+            <input type="checkbox" [(ngModel)]="isCashOverrideActive" class="w-4 h-4 accent-emerald-500 cursor-pointer">
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-medium uppercase tracking-wider text-neutral-500">Production Completion Target
+            Note</label>
+          <input type="text" [(ngModel)]="updatingTimeline" placeholder="e.g. 2 Hours, Same Day 5 PM, 3 Days"
+            class="bg-neutral-900/50 border border-neutral-900 rounded-xl px-4 py-2.5 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-700 transition-all w-full">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 mt-8 border-t border-neutral-900 pt-5">
+        <button (click)="closeModal()"
+          class="border border-neutral-800 text-neutral-400 hover:text-white px-4 py-2 rounded-xl text-xs font-medium hover:bg-neutral-900/40 transition-all cursor-pointer bg-transparent">
+          Cancel
+        </button>
+        <button (click)="submitStatusUpdate()"
+          class="bg-white text-black text-xs font-semibold px-5 py-2 rounded-xl hover:bg-neutral-200 transition-all cursor-pointer border-none shadow-md">
+          Execute Next Phase Transition
+        </button>
+      </div>
     </div>
   </div>
 </div>

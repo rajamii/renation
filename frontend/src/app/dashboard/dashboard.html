@@ -1,5 +1,4 @@
 <div class="min-h-screen bg-neutral-950 text-neutral-100 font-sans antialiased">
-
   @switch (userRole) {
   @case ('ADMIN') {
   <app-admin></app-admin>
@@ -9,7 +8,6 @@
   }
   @case ('USER') {
   <div class="max-w-7xl mx-auto p-6 min-h-screen flex flex-col justify-start">
-
     <header class="flex justify-between items-center border-b border-neutral-800 pb-4 mb-6">
       <div>
         <h1 class="text-xl font-semibold text-white tracking-tight">Customer Dashboard</h1>
@@ -21,222 +19,206 @@
       </button>
     </header>
 
-    <div class="flex items-center gap-6 border-b border-neutral-900 mb-8">
+    <div
+      class="flex items-center gap-6 border-b border-neutral-900 mb-8 overflow-x-auto scrollbar-none whitespace-nowrap">
       <button (click)="setTab('bookings')" [class.text-white]="activeTab === 'bookings'"
         [class.border-white]="activeTab === 'bookings'"
-        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">
+        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer bg-transparent">
         Appointments & Schedule
       </button>
       <button (click)="setTab('garage')" [class.text-white]="activeTab === 'garage'"
         [class.border-white]="activeTab === 'garage'"
-        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">
+        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer bg-transparent">
         My Garage
       </button>
       <button (click)="setTab('profile')" [class.text-white]="activeTab === 'profile'"
         [class.border-white]="activeTab === 'profile'"
-        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">
+        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer bg-transparent">
         Profile Ledger
       </button>
       <button (click)="setTab('rewards')" [class.text-white]="activeTab === 'rewards'"
         [class.border-white]="activeTab === 'rewards'"
-        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">
+        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer bg-transparent">
         Rewards Index
       </button>
     </div>
 
-    @if (successMessage) {
-    <div class="mb-6 p-3 bg-emerald-950/40 border border-emerald-800 text-emerald-400 rounded text-xs">
+    <!-- Alert Messaging Feedback Elements -->
+    <div *ngIf="successMessage"
+      class="mb-6 p-3 bg-emerald-950/40 border border-emerald-800 text-emerald-400 rounded text-xs">
       {{ successMessage }}
     </div>
-    }
-    @if (errorMessage) {
-    <div class="mb-6 p-3 bg-rose-950/40 border border-rose-800 text-rose-400 rounded text-xs">
+    <div *ngIf="errorMessage" class="mb-6 p-3 bg-rose-950/40 border border-rose-800 text-rose-400 rounded text-xs">
       {{ errorMessage }}
     </div>
-    }
 
-    @if (activeTab === 'bookings') {
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in">
+    <!-- TAB 1: BOOKINGS PIPELINE GRID MAP -->
+    <div *ngIf="activeTab === 'bookings'">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in">
 
-      <div class="lg:col-span-5 bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
-        <div class="mb-6">
-          <h2 class="text-base font-medium text-white">Book an Appointment</h2>
-          <p class="text-xs text-neutral-400">Configure parameters to generate a digital slot reservation pass.</p>
-        </div>
-
-        <form (ngSubmit)="submitBooking()" #bookingFormRef="ngForm" class="space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-neutral-400 mb-1.5">Required Treatment Service *</label>
-            <select name="service" [(ngModel)]="bookingForm.service" required
-              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700">
-              <option value="" disabled selected>Choose a Service</option>
-              @for (s of servicesList; track s.id) {
-              <option [value]="s.id">{{ s.name }}</option>
-              }
-            </select>
+        <!-- Left Column: Submit Request Form Panel -->
+        <div class="lg:col-span-5 bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
+          <div class="mb-6">
+            <h2 class="text-base font-medium text-white">Book an Appointment</h2>
+            <p class="text-xs text-neutral-400">Configure parameters to generate a digital slot reservation pass.</p>
           </div>
-
-          <div>
-            <label class="block text-xs font-medium text-neutral-400 mb-1.5">Select Vehicle from Garage *</label>
-            <select name="garage_vehicle" [(ngModel)]="bookingForm.garage_vehicle" required
-              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700">
-              <option value="" disabled selected>-- Select a Saved Car --</option>
-              @for (userCar of userGarage; track userCar.id) {
-              <option [value]="userCar.id">
-                {{ userCar.vehicle_details?.brand }} {{ userCar.vehicle_details?.name }} ({{ userCar.license_plate |
-                uppercase }})
-              </option>
-              }
-            </select>
-            @if (userGarage.length === 0) {
-            <p class="text-[11px] text-amber-500 mt-2 leading-tight">
-              ⚠️ No vehicles registered. Go to the "My Garage Ledger" tab to add one first.
-            </p>
-            }
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-neutral-400 mb-1.5">Requested Date *</label>
-            <input type="date" name="requested_date" [(ngModel)]="bookingForm.requested_date" (change)="onDateChange()"
-              required
-              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700" />
-          </div>
-
-          @if (bookingForm.requested_date) {
-          <div>
-            <label class="block text-xs font-medium text-neutral-400 mb-1.5">Available Time Slot *</label>
-            <select name="slot" [(ngModel)]="bookingForm.slot" required
-              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700">
-              @if (availableSlots.length > 0) {
-              <option value="" disabled selected>Select an Operating Time Window</option>
-              @for (slot of availableSlots; track slot.id) {
-              <option [value]="slot.id">
-                {{ slot.start_time | slice:0:5 }} - {{ slot.end_time | slice:0:5 }} (Capacity: {{ slot.max_capacity }})
-              </option>
-              }
-              } @else {
-              <option value="" disabled selected>No operating slots published for this day</option>
-              }
-            </select>
-          </div>
-          }
-
-          <div class="pt-4 border-t border-neutral-800 flex justify-end">
-            <button type="submit" [disabled]="!bookingFormRef.form.valid"
-              class="w-full px-5 py-2 rounded bg-white hover:bg-neutral-200 text-neutral-950 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
-              Confirm & Request Booking
-            </button>
-          </div>
-        </form>
-      </div>
-      <div class="lg:col-span-7 bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
-
-        <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 class="text-base font-medium text-white">Your Appointments Pipeline</h2>
-            <p class="text-xs text-neutral-400">Track treatment progress monitors and active scheduling milestones.</p>
-          </div>
-
-          <div>
-            <select name="statusFilter" [(ngModel)]="selectedStatusFilter" (change)="onFilterChange()"
-              class="bg-neutral-950 border border-neutral-800 rounded px-3 py-1.5 text-xs text-neutral-300 focus:outline-none focus:border-neutral-700 w-full sm:w-auto cursor-pointer">
-              <option value="ALL">All Bookings</option>
-              <option value="PENDING">Pending</option>
-              <option value="CONFIRMED">Booking Confirmed</option>
-              <option value="DELIVERED">Delivered</option>
-              <option value="WORK IN PROGRESS">Men At Work</option>
-            </select>
-          </div>
-        </div>
-
-        @if (getFilteredBookings().length === 0) {
-        <div
-          class="border border-dashed border-neutral-800 rounded-lg p-8 text-center text-neutral-500 text-xs font-mono">
-          @if (selectedStatusFilter === 'ALL') {
-          No historical workshop records found for this client account.
-          } @else {
-          No appointments found matching the selected status filter.
-          }
-        </div>
-        } @else {
-        <div class="space-y-3 max-h-[580px] overflow-y-auto pr-1">
-          @for (booking of getFilteredBookings(); track booking.id) {
-          <div
-            class="bg-neutral-950 border border-neutral-900 rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <form (ngSubmit)="submitBooking()" #bookingFormRef="ngForm" class="space-y-4">
             <div>
-              <div class="flex items-center gap-2 mb-1">
-                <span class="text-xs font-semibold text-white">{{ booking.service_name || 'Workshop Treatment' }}</span>
-                <span
-                  class="text-[9px] font-mono uppercase bg-neutral-900 border border-neutral-800 px-1.5 py-0.5 rounded text-neutral-400">
-                  {{ booking.garage_vehicle_details?.vehicle_details?.category_name || 'Tier' }}
-                </span>
-              </div>
-              <p class="text-xs text-neutral-300">
-                {{ booking.garage_vehicle_details?.vehicle_details?.brand }} {{
-                booking.garage_vehicle_details?.vehicle_details?.name }}
-                @if (booking.garage_vehicle_details?.license_plate) {
-                <span class="text-neutral-500">({{ booking.garage_vehicle_details?.license_plate | uppercase }})</span>
+              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Required Treatment Service *</label>
+              <select name="service" [(ngModel)]="bookingForm.service" required
+                class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700 appearance-none cursor-pointer">
+                <option value="" disabled selected>Choose a Service</option>
+                @for (s of servicesList; track s.id) {
+                <option [value]="s.id">{{ s.name }}</option>
                 }
-              </p>
-              <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-neutral-400">
-                <span>📅 Date: {{ booking.requested_date | date:'mediumDate' }}</span>
-                @if (booking.slot_start) {
-                <span class="text-amber-400">⏱️ Time: {{ booking.slot_start | slice:0:5 }} - {{ booking.slot_end |
-                  slice:0:5 }}</span>
-                } @else {
-                <span class="text-neutral-500">⏱️ Slot Pending allocation</span>
-                }
-                @if (booking.final_price) {
-                <span class="text-emerald-400 font-medium">₹{{ booking.final_price }}</span>
-                }
-              </div>
+              </select>
             </div>
-
-            <div
-              class="flex flex-col items-end gap-1.5 w-full md:w-auto border-t md:border-t-0 border-neutral-900 pt-2 md:pt-0">
-              <span class="text-[10px] tracking-wider font-mono uppercase font-semibold px-2 py-1 rounded border"
-                [ngClass]="{
-                    'bg-amber-950/40 text-amber-400 border-amber-900/50': booking.status === 'PENDING',
-                    'bg-emerald-950/40 text-emerald-400 border-emerald-900/50': booking.status === 'CONFIRMED',
-                    'bg-blue-950/40 text-blue-400 border-blue-900/50': booking.status === 'DELIVERED',
-                    'bg-rose-950/40 text-rose-400 border-rose-900/50': booking.status === 'CANCELLED'
-                  }">
-                ● {{ booking.status_name || booking.status }}
-              </span>
-              @if (booking.estimated_delivery_timeline) {
-              <span class="text-[10px] text-neutral-500">ETA: {{ booking.estimated_delivery_timeline }}</span>
-              }
-              <button (click)="openQrModal(booking)"
-                class="mt-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 px-2.5 py-1 rounded text-[11px] transition cursor-pointer">
-                View Pass
+            <div>
+              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Select Vehicle *</label>
+              <select name="garage_vehicle" [(ngModel)]="bookingForm.garage_vehicle" required
+                class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700 appearance-none cursor-pointer">
+                <option value="" disabled selected>-- Select a Saved Car --</option>
+                <option *ngFor="let userCar of userGarage" [value]="userCar.id">
+                  {{ userCar.vehicle_details?.brand }} {{ userCar.vehicle_details?.name }} ({{ userCar.license_plate |
+                  uppercase }})
+                </option>
+              </select>
+              <p *ngIf="userGarage.length === 0" class="text-[11px] text-amber-500 mt-2 leading-tight">
+                No vehicles registered. Go to the "My Garage" tab to add one first.
+              </p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-neutral-400 mb-1.5">Preferred Date *</label>
+              <input type="date" name="requested_date" [(ngModel)]="bookingForm.requested_date" required
+                class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-neutral-200 focus:outline-none focus:border-neutral-700" />
+            </div>
+            <div class="pt-4 border-t border-neutral-800 flex justify-end">
+              <button type="submit" [disabled]="!bookingFormRef.form.valid"
+                class="w-full px-5 py-2 rounded bg-white hover:bg-neutral-200 text-neutral-950 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer border-none">
+                Request Studio Booking
               </button>
             </div>
-          </div>
-          }
+          </form>
         </div>
-        }
+
+        <!-- Right Column: Queue Pipeline Feed -->
+        <div class="lg:col-span-7 bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
+          <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 class="text-base font-medium text-white">Your Appointments Pipeline</h2>
+              <p class="text-xs text-neutral-400">Track treatment progress monitors and active scheduling milestones.
+              </p>
+            </div>
+            <div>
+              <select name="statusFilter" [(ngModel)]="selectedStatusFilter" (change)="onFilterChange()"
+                class="bg-neutral-950 border border-neutral-800 rounded px-3 py-1.5 text-xs text-neutral-300 focus:outline-none focus:border-neutral-700 w-full sm:w-auto cursor-pointer appearance-none">
+                <option value="ALL">All Bookings</option>
+                <option value="PENDING">Pending</option>
+                <option value="AWAITING PAYMENT">Awaiting Payment</option>
+                <option value="CONFIRMED">Booking Confirmed</option>
+                <option value="ARRIVED">Vehicle Arrived</option>
+                <option value="WORK IN PROGRESS">Men At Work</option>
+                <option value="DELIVERED">Delivered</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          <div *ngIf="getFilteredBookings().length === 0"
+            class="border border-dashed border-neutral-800 rounded-lg p-8 text-center text-neutral-500 text-xs font-mono">
+            No operational workspace records match current status matrix lookup criteria.
+          </div>
+
+          <div *ngIf="getFilteredBookings().length > 0" class="space-y-3 max-h-[580px] overflow-y-auto pr-1">
+            <div *ngFor="let booking of getFilteredBookings()"
+              class="bg-neutral-950 border border-neutral-900 rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-xs font-semibold text-white">{{ booking.service_name || 'Workshop Treatment'
+                    }}</span>
+                  <span
+                    class="text-[9px] font-mono uppercase bg-neutral-900 border border-neutral-800 px-1.5 py-0.5 rounded text-neutral-400">
+                    {{ getVehicleDetails(booking.garage_vehicle)?.vehicle_details?.category_name || 'Standard Tier' }}
+                  </span>
+                </div>
+                <p class="text-xs text-neutral-300">
+                  {{ getVehicleDetails(booking.garage_vehicle)?.vehicle_details?.brand }}
+                  {{ getVehicleDetails(booking.garage_vehicle)?.vehicle_details?.name || 'Unknown Vehicle' }}
+
+                  <span *ngIf="getVehicleDetails(booking.garage_vehicle)?.license_plate"
+                    class="text-neutral-500 font-mono">
+                    ({{ getVehicleDetails(booking.garage_vehicle).license_plate | uppercase }})
+                  </span>
+                </p>
+                <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-neutral-400 font-mono">
+                  <span>Date: {{ booking.requested_date }}</span>
+
+                  <!-- Dynamic Time Allocations based on Assigned State Parameters -->
+                  <span *ngIf="booking.assigned_date" class="text-emerald-400">Scheduled: {{ booking.assigned_date }} @
+                    {{ booking.assigned_time }}</span>
+                  <span *ngIf="!booking.assigned_date" class="text-neutral-600">State: Evaluating load capacities</span>
+                  <span *ngIf="booking.final_price" class="text-emerald-400 font-sans font-medium">₹{{
+                    booking.final_price }}</span>
+                </div>
+
+                <!-- NEW COMPONENT INTEGRATION: Countdown Notification Segment during validation window -->
+                <div *ngIf="booking.status === 'AWAITING PAYMENT'"
+                  class="mt-3 flex items-center gap-2 text-rose-400 font-mono text-xs">
+                  <span class="animate-pulse">⏳</span> Token Expiration Clock:
+                  <span class="font-bold text-white bg-neutral-900 px-2 py-0.5 rounded border border-neutral-800">{{
+                    countdowns[booking.id] || '--:--' }}</span>
+                </div>
+              </div>
+
+              <div
+                class="flex flex-col items-end gap-1.5 w-full md:w-auto border-t md:border-t-0 border-neutral-900 pt-2 md:pt-0">
+                <span
+                  class="text-[10px] tracking-wider font-mono uppercase font-semibold px-2 py-1 rounded border bg-neutral-900 text-neutral-400 border-neutral-800"
+                  [ngClass]="{
+                    'text-amber-400 border-amber-900/40 bg-amber-950/20': booking.status === 'PENDING',
+                    'text-sky-400 border-sky-900/40 bg-sky-950/20': booking.status === 'AWAITING PAYMENT',
+                    'text-emerald-400 border-emerald-900/40 bg-emerald-950/20': booking.status === 'CONFIRMED',
+                    'text-neutral-500 border-neutral-800 bg-neutral-900': booking.status === 'CANCELLED'
+                  }">
+                  {{ booking.status }}
+                </span>
+                <span *ngIf="booking.estimated_delivery_timeline" class="text-[10px] text-neutral-500">Target ETA: {{
+                  booking.estimated_delivery_timeline }}</span>
+
+                <!-- Action Row Controller Toggles -->
+                <div class="flex gap-2 w-full justify-end mt-1">
+                  <button *ngIf="booking.status === 'AWAITING PAYMENT' && countdowns[booking.id] !== 'EXPIRED'"
+                    (click)="executeTokenPayment(booking.id)"
+                    class="bg-white text-black font-semibold px-2.5 py-1 rounded text-[11px] hover:bg-neutral-200 border-none transition cursor-pointer shadow-sm">
+                    Pay Booking Token
+                  </button>
+                  <button (click)="openQrModal(booking)"
+                    class="bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 px-2.5 py-1 rounded text-[11px] transition cursor-pointer">
+                    View Pass
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-
     </div>
-    }
+    <!-- END TAB 1 -->
 
-    @if (activeTab === 'garage') {
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in">
+    <!-- TAB 2: MY VEHICLE FLEET MANAGEMENT -->
+    <div *ngIf="activeTab === 'garage'" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in">
       <div class="lg:col-span-4 bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
         <h2 class="text-base font-medium text-white mb-1">Add New Vehicle</h2>
-        <p class="text-xs text-neutral-400 mb-4">Link domestic car assets from the lookup database directory into your
-          active profile.</p>
-
+        <p class="text-xs text-neutral-400 mb-4">Link domestic car assets from the lookup directory into your profile.
+        </p>
         <form (ngSubmit)="addCarToGarage()" class="space-y-4">
           <div>
             <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Vehicle Brand / Make
               *</label>
             <select name="addGarageBrand" [(ngModel)]="garagePayload.brand" (change)="onBrandChange()" required
-              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700">
+              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 appearance-none cursor-pointer">
               <option value="" disabled selected>-- Choose Brand --</option>
-              @for (brand of uniqueBrands; track brand) {
-              <option [value]="brand">{{ brand }}</option>
-              }
+              <option *ngFor="let brand of uniqueBrands" [value]="brand">{{ brand }}</option>
             </select>
           </div>
           <div>
@@ -244,12 +226,10 @@
               *</label>
             <select name="addGarageVehicle" [(ngModel)]="garagePayload.vehicle" [disabled]="!garagePayload.brand"
               required
-              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed">
-              <option value="" disabled selected>{{ garagePayload.brand ? '-- Select Model --' : '← Choose a brand
-                first' }}</option>
-              @for (car of filteredModels; track car.id) {
-              <option [value]="car.id">{{ car.name }}</option>
-              }
+              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed appearance-none cursor-pointer">
+              <option value="" disabled selected>{{ garagePayload.brand ? '-- Select Model --' : 'Choose a brand first'
+                }}</option>
+              <option *ngFor="let car of filteredModels" [value]="car.id">{{ car.name }}</option>
             </select>
           </div>
           <div>
@@ -257,10 +237,10 @@
               *</label>
             <input type="text" name="addGaragePlate" [(ngModel)]="garagePayload.license_plate"
               placeholder="e.g. MH12AB1234" required
-              class="w-full bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-xs text-white uppercase focus:outline-none focus:border-neutral-700 placeholder-neutral-700">
+              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-white uppercase focus:outline-none focus:border-neutral-700 placeholder-neutral-700">
           </div>
           <button type="submit"
-            class="w-full bg-white text-black text-xs font-medium py-2.5 rounded-lg hover:bg-neutral-200 transition-all cursor-pointer">
+            class="w-full bg-white text-black text-xs font-medium py-2.5 rounded-lg hover:bg-neutral-200 transition-all cursor-pointer border-none">
             Register Vehicle Asset
           </button>
         </form>
@@ -268,12 +248,10 @@
 
       <div class="lg:col-span-8 bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
         <h2 class="text-base font-medium text-white mb-1">Registered Fleet Ledgers</h2>
-        <p class="text-xs text-neutral-400 mb-6">List configuration mapping definitions registered inside your client
-          profile account.</p>
-
+        <p class="text-xs text-neutral-400 mb-6">List configuration mapping definitions registered inside your profile.
+        </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          @for (item of userGarage; track item.id) {
-          <div
+          <div *ngFor="let item of userGarage"
             class="bg-neutral-950 border border-neutral-800 rounded-xl p-4 flex flex-col justify-between hover:border-neutral-700 transition-all">
             <div class="mb-4">
               <span class="text-xs font-mono font-bold text-neutral-500 uppercase tracking-wider block mb-1">License
@@ -292,122 +270,99 @@
               </span>
             </div>
           </div>
-          } @empty {
-          <div
+          <div *ngIf="userGarage.length === 0"
             class="md:col-span-2 border border-dashed border-neutral-800 rounded-xl p-12 text-center text-neutral-500 text-xs font-mono">
-            No matching client-side vehicular references linked onto this garage module.
+            No matching vehicle references linked onto this garage module.
           </div>
-          }
         </div>
       </div>
     </div>
-    }
+    <!-- END TAB 2 -->
 
-    @if (activeTab === 'profile') {
-    <div class="max-w-2xl mx-auto bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl animate-fade-in">
-
+    <!-- TAB 3: ACCOUNT PROFILE INFO METADATA MAP -->
+    <div *ngIf="activeTab === 'profile'"
+      class="max-w-2xl mx-auto bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl animate-fade-in">
       <div class="flex justify-between items-center mb-6 pb-4 border-b border-neutral-800">
         <div>
           <h2 class="text-base font-medium text-white">Account Portfolio Matrix</h2>
-          <p class="text-xs text-neutral-400">View And Edit Profile Data.
-          </p>
+          <p class="text-xs text-neutral-400">View and edit your authenticated registration profiles.</p>
         </div>
-
         <button type="button" (click)="isEditingProfile ? cancelProfileEditing() : isEditingProfile = true"
-          class="px-2.5 py-1 text-xs font-medium rounded border transition cursor-pointer"
-          [ngClass]="isEditingProfile ? 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:bg-neutral-900' : 'bg-white border-white text-neutral-950 hover:bg-neutral-200'">
+          class="px-2.5 py-1 text-xs font-medium rounded border transition cursor-pointer bg-transparent"
+          [ngClass]="isEditingProfile ? 'border-neutral-800 text-neutral-400 hover:bg-neutral-900' : 'bg-white border-white text-neutral-950 hover:bg-neutral-200'">
           {{ isEditingProfile ? 'Cancel Editing' : 'Modify Information' }}
         </button>
       </div>
-
       <form (ngSubmit)="saveProfileChanges()" class="space-y-4">
-
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">First Name
               (Read-Only)</label>
             <div
               class="w-full bg-neutral-950/60 border border-neutral-900/50 rounded px-3 py-2 text-xs text-neutral-400 font-medium">
-              {{ profileData.first_name || 'N/A' }}
-            </div>
+              {{ profileData.first_name || '—' }}</div>
           </div>
           <div>
             <label class="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Last Name
               (Read-Only)</label>
             <div
               class="w-full bg-neutral-950/60 border border-neutral-900/50 rounded px-3 py-2 text-xs text-neutral-400 font-medium">
-              {{ profileData.last_name || 'N/A' }}
-            </div>
+              {{ profileData.last_name || '—' }}</div>
           </div>
         </div>
-
         <div>
           <label class="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">User Identifier
             (Read-Only)</label>
           <div
             class="w-full bg-neutral-950/60 border border-neutral-900/50 rounded px-3 py-2 text-xs text-neutral-400 font-mono">
-            @{{ profileData.username || 'unknown_alias' }}
-          </div>
+            @{{ profileData.username || 'unknown_alias' }}</div>
         </div>
-
         <hr class="border-neutral-900 my-2" />
-
         <div>
           <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Email Destination Address
             *</label>
           <input type="email" name="profileEmail" [(ngModel)]="profileData.email" [disabled]="!isEditingProfile"
             required
-            class="w-full bg-neutral-950 border rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 disabled:opacity-50 disabled:bg-neutral-950/30 transition-all"
-            [class.border-neutral-800]="!isEditingProfile" [class.border-neutral-700]="isEditingProfile">
+            class="w-full bg-neutral-950 border rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 disabled:opacity-50 disabled:bg-neutral-950/30 transition-all border-neutral-800">
         </div>
-
         <div>
           <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Mobile Contact Phone Number
             *</label>
           <input type="text" name="profilePhone" [(ngModel)]="profileData.phone_number" [disabled]="!isEditingProfile"
             required placeholder="No phone registered"
-            class="w-full bg-neutral-950 border rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 disabled:opacity-50 disabled:bg-neutral-950/30 transition-all"
-            [class.border-neutral-800]="!isEditingProfile" [class.border-neutral-700]="isEditingProfile">
+            class="w-full bg-neutral-950 border rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 disabled:opacity-50 disabled:bg-neutral-950/30 transition-all border-neutral-800">
         </div>
-
-        @if (isEditingProfile) {
-        <div class="pt-4 border-t border-neutral-800 flex justify-end">
+        <div *ngIf="isEditingProfile" class="pt-4 border-t border-neutral-800 flex justify-end">
           <button type="submit"
-            class="w-full sm:w-auto px-5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-all cursor-pointer shadow-md">
-            Commit Profiles Changes
+            class="w-full sm:w-auto px-5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-all cursor-pointer shadow-md border-none">
+            Commit Profile Changes
           </button>
         </div>
-        }
-
       </form>
-
       <div
         class="mt-6 pt-4 border-t border-neutral-950 flex items-center justify-between text-xs text-neutral-500 font-mono">
-        <span>Referral Code</span>
+        <span>Your Referral Token</span>
         <span
-          class="text-neutral-300 font-sans tracking-wide bg-neutral-950 px-2 py-1 rounded border border-neutral-900">
-          {{ profileData.referral_code || 'None' }}
-        </span>
+          class="text-neutral-300 font-sans tracking-wide bg-neutral-950 px-2 py-1 rounded border border-neutral-900">{{
+          profileData.referral_code || 'None' }}</span>
       </div>
-
     </div>
-    }
+    <!-- END TAB 3 -->
 
-    @if (activeTab === 'rewards' && rewardSummary) {
-    <div class="space-y-8 animate-fade-in">
+    <!-- TAB 4: REWARDS, BONUSES & DIGITAL VOUCHERS -->
+    <div *ngIf="activeTab === 'rewards' && rewardSummary" class="space-y-8 animate-fade-in">
       <div class="bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl">
-        <div class="mb-6 flex justify-between items-end">
+        <div class="mb-6 flex justify-between items-end gap-4 flex-wrap">
           <div>
             <h2 class="text-base font-medium text-white">Network Milestones Summary</h2>
-            <p class="text-xs text-neutral-400">Review cumulative multi-tier commission progress stats.</p>
+            <p class="text-xs text-neutral-400">Review cumulative multi-tier network progress metrics.</p>
           </div>
           <div class="text-xs text-neutral-500 font-mono">
-            Your Referral Code: <span
+            Your Code: <span
               class="text-white font-bold bg-neutral-950 px-2.5 py-1.5 rounded border border-neutral-800 font-sans tracking-wide ml-1">{{
               rewardSummary.referral_code }}</span>
           </div>
         </div>
-
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-5">
             <h3 class="text-sm font-semibold text-neutral-200 mb-1">Direct Referrals</h3>
@@ -419,9 +374,7 @@
             <div class="w-full bg-neutral-800 rounded-full h-1.5 mb-2">
               <div class="bg-blue-500 h-1.5 rounded-full transition-all" [style.width.%]="getDirectProgress()"></div>
             </div>
-            <p class="text-[10px] text-neutral-500">Milestones: 3 (20% off), 5 (30% off)</p>
           </div>
-
           <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-5">
             <h3 class="text-sm font-semibold text-neutral-200 mb-1">Network Referrals</h3>
             <p class="text-[11px] text-neutral-500 mb-4">Earn automatically across wider networks.</p>
@@ -433,12 +386,10 @@
               <div class="bg-purple-500 h-1.5 rounded-full transition-all" [style.width.%]="getIndirectProgress()">
               </div>
             </div>
-            <p class="text-[10px] text-neutral-500">Milestones: 10, 25, 50 network bookings</p>
           </div>
-
           <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-5">
             <h3 class="text-sm font-semibold text-neutral-200 mb-1">Yearly Loyalty</h3>
-            <p class="text-[11px] text-neutral-500 mb-4">Schedule 10 appointments for elite status updates.</p>
+            <p class="text-[11px] text-neutral-500 mb-4">Schedule 10 appointments for elite milestones.</p>
             <div class="flex justify-between text-xs font-medium text-neutral-300 mb-1.5">
               <span>{{ rewardSummary.yearly_bookings_count }} / 10 Visits</span>
               <span>{{ getLoyaltyProgress() | number:'1.0-0' }}%</span>
@@ -447,64 +398,62 @@
               <div class="bg-emerald-500 h-1.5 rounded-full transition-all" [style.width.%]="getLoyaltyProgress()">
               </div>
             </div>
-            <p class="text-[10px] text-neutral-500">Resets annually on January 1st</p>
           </div>
         </div>
 
-        @if (rewardSummary.unlocked_discounts.length > 0) {
-        <div class="mt-8 border-t border-neutral-800 pt-6">
+        <div *ngIf="rewardSummary.unlocked_discounts.length > 0" class="mt-8 border-t border-neutral-800 pt-6">
           <h3 class="text-sm font-medium text-white mb-3">Your Available Discounts</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            @for (discount of rewardSummary.unlocked_discounts; track discount.id) {
-            @if (!discount.is_used) {
-            <div class="p-4 border rounded-xl flex items-center justify-between transition-colors"
-              [ngClass]="selectedDiscountId === discount.id ? 'border-emerald-500 bg-emerald-950/20' : 'border-dashed border-blue-900/50 bg-blue-950/20'">
-              <div>
-                <span class="block text-xl font-bold"
-                  [ngClass]="selectedDiscountId === discount.id ? 'text-emerald-400' : 'text-blue-400'">
-                  {{ discount.discount_percentage }}% OFF
-                </span>
-                <span class="text-[10px] uppercase tracking-wider font-mono"
-                  [ngClass]="selectedDiscountId === discount.id ? 'text-emerald-500/70' : 'text-blue-500/70'">
-                  {{ discount.referral_type }} Reward
-                </span>
+            <ng-container *ngFor="let discount of rewardSummary.unlocked_discounts">
+              <div *ngIf="!discount.is_used"
+                class="p-4 border rounded-xl flex items-center justify-between transition-colors"
+                [ngClass]="selectedDiscountId === discount.id ? 'border-emerald-500 bg-emerald-950/20' : 'border-dashed border-blue-900/50 bg-blue-950/20'">
+                <div>
+                  <span class="block text-xl font-bold"
+                    [ngClass]="selectedDiscountId === discount.id ? 'text-emerald-400' : 'text-blue-400'">{{
+                    discount.discount_percentage }}% OFF</span>
+                  <span class="text-[10px] uppercase tracking-wider font-mono opacity-60">{{ discount.referral_type }}
+                    Reward</span>
+                </div>
+                <button type="button" (click)="toggleDiscount(discount)"
+                  class="px-3 py-1.5 text-xs font-medium rounded-lg transition border cursor-pointer bg-transparent"
+                  [ngClass]="selectedDiscountId === discount.id ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-blue-600/20 text-blue-400 border-blue-800/50'">
+                  {{ selectedDiscountId === discount.id ? 'Applied' : 'Apply to Next Booking' }}
+                </button>
               </div>
-              <button type="button" (click)="toggleDiscount(discount)"
-                class="px-3 py-1.5 text-xs font-medium rounded-lg transition border cursor-pointer"
-                [ngClass]="selectedDiscountId === discount.id ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border-blue-800/50'">
-                {{ selectedDiscountId === discount.id ? 'Applied ✅' : 'Apply to Next Booking' }}
-              </button>
-            </div>
-            }
-            }
+            </ng-container>
           </div>
         </div>
-        }
       </div>
     </div>
-    }
+    <!-- END TAB 4 -->
 
-    @if (showQrModal) {
-    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+    <!-- CUSTOM SECURITY ACCESS MODAL POPUP (View Security Pass) -->
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in"
+      *ngIf="showQrModal">
       <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center border border-neutral-200">
-        <h3 class="text-lg font-bold mb-1 text-neutral-900">Your Booking QR Pass</h3>
-        <p class="text-xs text-neutral-500 mb-4">Present this barcode at the check-in reception terminal.</p>
+        <h3 class="text-lg font-bold mb-1 text-neutral-900">Studio Pass</h3>
+        <p class="text-xs text-neutral-500 mb-4">Present this single code at either the workshop gate or the lounge</p>
+
         <div class="flex justify-center p-4 bg-neutral-50 rounded-xl mb-4 border border-neutral-100">
-          @if (qrCodeDataUrl) {
-          <img [src]="qrCodeDataUrl" alt="Booking QR Code" class="mx-auto" />
-          } @else {
-          <p class="text-sm text-neutral-400 animate-pulse">Generating security encryption pass...</p>
-          }
+          <qrcode [qrdata]="selectedBookingId || ''" [width]="240" [margin]="1" [errorCorrectionLevel]="'M'"></qrcode>
         </div>
-        <p class="text-xs font-mono text-neutral-400 mb-4 bg-neutral-50 py-1 rounded">ID REFERENCE: {{ selectedBookingId
-          }}</p>
+
+        <div class="text-left bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 mb-4 space-y-1">
+          <p class="text-[10px] font-mono text-neutral-400 uppercase tracking-wider">Pass Content Inventory</p>
+          <p class="text-xs text-neutral-700 font-medium">✓ Studio Gate Check-In Key</p>
+          <p class="text-xs font-medium text-neutral-700">
+            {{ selectedBookingId && selectedBookingId.includes('voucher_id') ? '✓ VIP Lounge Perks Voucher' :
+            '• No Lounge Voucher Provisioned' }}
+          </p>
+        </div>
+
         <button (click)="closeQrModal()"
-          class="w-full bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-medium py-2.5 rounded-xl transition-all cursor-pointer shadow-md">
-          Close Workshop Pass
+          class="w-full bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-medium py-2.5 rounded-xl transition-all cursor-pointer shadow-md border-none">
+          Close Security Pass
         </button>
       </div>
     </div>
-    }
 
   </div>
   }
@@ -515,7 +464,7 @@
     </div>
     <h3 class="text-sm font-medium text-white mb-1">Evaluating Access Privileges</h3>
     <button (click)="logout()"
-      class="text-xs text-neutral-500 hover:text-white transition-colors cursor-pointer underline underline-offset-4">
+      class="text-xs text-neutral-500 hover:text-white transition-colors cursor-pointer bg-transparent underline underline-offset-4 border-none">
       Return to Login
     </button>
   </div>

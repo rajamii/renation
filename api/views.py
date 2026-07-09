@@ -12,7 +12,6 @@ from django.contrib.auth import get_user_model
 
 from .models import (
     Service, 
-    AppointmentSlot, 
     Booking, 
     BookingLog, 
     VehicleCategoryMaster, 
@@ -23,11 +22,11 @@ from .models import (
     UnlockedDiscount,
     LoyaltyMilestone,
     VehicleMaster,
-    Garage
+    Garage,
+    DigitalVoucher,
 )
 from .serializers import (
     ServiceSerializer, 
-    AppointmentSlotSerializer, 
     BookingSerializer, 
     VehicleCategoryMasterSerializer, 
     BookingStatusMasterSerializer, 
@@ -147,27 +146,6 @@ class ServiceViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsAdminOfficeOrReadOnly]
 
 
-class AppointmentSlotViewSet(viewsets.ModelViewSet):
-    """
-    Allows authenticated users to list/lookup slots by date, 
-    while restricting full management CRUD operations to Admin/Office staff teams.
-    """
-    serializer_class = AppointmentSlotSerializer
-
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [permissions.IsAuthenticated()]
-        return [permissions.IsAuthenticated(), IsAdminOrOffice()]
-
-    def get_queryset(self):
-
-        queryset = AppointmentSlot.objects.filter(is_active=True)
-        target_date = self.request.query_params.get('date', None)
-        if target_date is not None:
-            queryset = queryset.filter(date=target_date)
-            
-        return queryset.order_by('start_time')
-
 
 class BookingViewSet(viewsets.ModelViewSet):
     serializer_class = BookingSerializer
@@ -175,31 +153,20 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        two_hours_ago = timezone.now() - timezone.timedelta(hours=2)
+        
+        expired_bookings = Booking.objects.filter(
+            status__code='AWAITING PAYMENT',
+            payment_window_start__isnull=False,
+            payment_window_start__lt=two_hours_ago
+        )
+        if expired_bookings.exists():
+            cancelled_status = BookingStatusMaster.objects.get(code='CANCELLED')
+            expired_bookings.update(status=cancelled_status)
+
         if user.role_id in ['ADMIN', 'OFFICE']:
-            return Booking.objects.all().order_by('-created_at')
-        return Booking.objects.filter(user=user).order_by('-created_at')
-    
-    def validate_slot_capacity(self, slot_instance, target_date, exclude_booking_id=None):
-        """
-        Validates that a given time slot hasn't exceeded its max capacity 
-        for a specific date. Supports excluding a booking ID to prevent self-conflict.
-        """
-        if slot_instance:
-            active_bookings = Booking.objects.filter(
-                slot=slot_instance,
-                requested_date=target_date
-            ).exclude(status__code='CANCELLED')
-
-            if exclude_booking_id is not None:
-                active_bookings = active_bookings.exclude(id=exclude_booking_id)
-
-            active_bookings_count = active_bookings.count()
-
-            if active_bookings_count >= slot_instance.max_capacity:
-                raise ValidationError({
-                    "error": f"The selected time slot ({slot_instance.start_time} - {slot_instance.end_time}) "
-                             f"has reached its max capacity of {slot_instance.max_capacity} concurrent vehicles for this day."
-                })
+            return Booking.objects.select_related('voucher').all().order_by('-created_at')
+        return Booking.objects.select_related('voucher').filter(user=user).order_by('-created_at')
 
     def _log_action(self, booking, actor):
         from .models import BookingLog
@@ -214,11 +181,6 @@ class BookingViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         service = serializer.validated_data.get('service')
         garage_vehicle = serializer.validated_data.get('garage_vehicle')
-        requested_date = serializer.validated_data.get('requested_date')
-        slot = serializer.validated_data.get('slot')
-        
-        if slot:
-            self.validate_slot_capacity(slot, requested_date)
 
         try:
             vehicle_category = garage_vehicle.vehicle.category
@@ -244,41 +206,72 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['patch'], permission_classes=[IsAdminOrOffice])
     def update_status(self, request, pk=None):
+        """
+        Strict state machine pipeline controller preventing manual status skipping.
+        Advances bookings through context-aware sequence mappings cleanly.
+        """
         booking = self.get_object()
-        new_status_code = request.data.get('status')
+        current_stage = booking.status.code
+        is_cash_payment = request.data.get('cash_payment', False)
+
+        assigned_date = request.data.get('assigned_date')
+        assigned_time = request.data.get('assigned_time')
         new_timeline = request.data.get('estimated_delivery_timeline')
-        slot_id = request.data.get('slot')
 
-        should_validate_capacity = False
+        WORKFLOW_MAP = {
+            'PENDING': 'AWAITING PAYMENT',
+            'AWAITING PAYMENT': 'CONFIRMED',
+            'CONFIRMED': 'ARRIVED',
+            'ARRIVED': 'WORK IN PROGRESS',
+            'WORK IN PROGRESS': 'AWAITING PAYMENT'
+        }
 
-        if new_status_code:
-            try:
-                if booking.status.code != 'CONFIRMED' and new_status_code == 'CONFIRMED':
-                    should_validate_capacity = True
+        if current_stage == 'AWAITING PAYMENT':
+    
+            if booking.assigned_date and booking.payment_window_start is None:
+                next_stage_code = 'DELIVERED'
+            else:
+                next_stage_code = 'CONFIRMED' # Initial deposit stage
+        else:
+            next_stage_code = WORKFLOW_MAP.get(current_stage)
 
-                booking.status = BookingStatusMaster.objects.get(code=new_status_code)
-            except BookingStatusMaster.DoesNotExist:
-                return Response({'error': 'Invalid Master Status Selection Code'}, status=status.HTTP_400_BAD_REQUEST)
-                
+        if not next_stage_code:
+            return Response({'error': 'This booking has already reached its final terminal lifecycle state.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if next_stage_code == 'AWAITING PAYMENT' and current_stage == 'PENDING':
+            final_date = assigned_date or booking.assigned_date
+            final_time = assigned_time or booking.assigned_time
+            if not final_date or not final_time:
+                return Response({'error': 'You must assign both a Date and Time block before proceeding.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            booking.assigned_date = final_date
+            booking.assigned_time = final_time
+            booking.payment_window_start = timezone.now()
+
+        elif current_stage == 'AWAITING PAYMENT':
+            if not is_cash_payment:
+                return Response({'error': 'Online billing steps must be triggered via client application hubs.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if next_stage_code == 'CONFIRMED':
+                DigitalVoucher.objects.get_or_create(booking=booking, user=booking.user)
+
+        elif current_stage == 'ARRIVED' and next_stage_code == 'WORK IN PROGRESS':
+            booking.payment_window_start = None
+
         if new_timeline:
             booking.estimated_delivery_timeline = new_timeline
-            
-        if slot_id:
-            try:
-                slot_instance = AppointmentSlot.objects.get(id=slot_id)
-                booking.slot = slot_instance
-            except AppointmentSlot.DoesNotExist:
-                return Response({'error': 'Selected Appointment Slot does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if slot_id and booking.status.code == 'CONFIRMED':
-            should_validate_capacity = True
 
-        if should_validate_capacity and booking.slot:
-            self.validate_slot_capacity(booking.slot, booking.requested_date, exclude_booking_id=booking.id)
-            
+        booking.status = BookingStatusMaster.objects.get(code=next_stage_code)
         booking.save()
         self._log_action(booking, request.user)
-        return Response({'status': 'Tracking data committed successfully'})
+        
+        return Response({
+            'status': 'Workflow advanced successfully',
+            'previous_stage': current_stage,
+            'current_state': booking.status.code,
+            'assigned_date': booking.assigned_date,
+            'assigned_time': booking.assigned_time
+        }, status=status.HTTP_200_OK)
 
 
 # ==========================================
