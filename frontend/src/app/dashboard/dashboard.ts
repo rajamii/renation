@@ -31,8 +31,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   lookupVehiclesCatalog: any[] = [];
   uniqueBrands: string[] = [];
   filteredModels: any[] = [];
+  cafeMenu: any[] = [];
+  gamingStations: any[] = [];
+  myTab: any = null;
   selectedStatusFilter: string = 'PENDING';
-  activeTab: 'bookings' | 'garage' | 'rewards' | 'profile' = 'bookings';
+  activeTab: 'bookings' | 'garage' | 'rewards' | 'profile'| 'cafe' | 'gaming' = 'bookings'; 
 
   profileData = {
     email: '',
@@ -136,7 +139,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  // NEW: Client Token Gateway submission logic
   executeTokenPayment(bookingId: number) {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${localStorage.getItem('access')}`);
     this.http.patch(`${environment.apiUrl}/bookings/${bookingId}/update_status/`, { status: 'CONFIRMED' }, { headers })
@@ -154,11 +156,64 @@ export class DashboardComponent implements OnInit, OnDestroy {
       });
   }
 
-  // ... (Keep ALL your existing, original component methods verbatim beneath this line)
-  setTab(tabName: 'bookings' | 'garage' | 'profile' | 'rewards') {
+  payTabOnline() {
+    this.apiService.post('/client-services/pay_online/').subscribe({
+      next: () => {
+        this.successMessage = 'Payment successful! Tab settled.';
+        this.fetchMyTab();
+        setTimeout(() => this.successMessage = '', 4000);
+      },
+      error: () => this.errorMessage = 'Payment failed.'
+    });
+  }
+
+  
+  setTab(tabName: 'bookings' | 'garage' | 'profile' | 'rewards' | 'cafe' | 'gaming') {
     this.activeTab = tabName;
-    this.selectedStatusFilter = 'CONFIRMED';
+    if (tabName === 'cafe') this.loadCafeMenu();
+    if (tabName === 'gaming') this.loadGamingStations();
+    this.fetchMyTab();
     this.cdr.detectChanges();
+  }
+
+  fetchMyTab() {
+    this.apiService.get<any>('/client-services/my_tab/').subscribe(data => this.myTab = data);
+  }
+
+  loadCafeMenu() {
+    this.apiService.get<any[]>('/cafe/').subscribe(data => {
+      this.cafeMenu = data;
+      this.cdr.detectChanges();
+    });
+  }
+
+  loadGamingStations() {
+    this.apiService.get<any[]>('/gaming/').subscribe(data => {
+      this.gamingStations = data;
+      this.cdr.detectChanges();
+    });
+  }
+
+  orderCafeItem(itemId: string) {
+    this.apiService.post('/client-services/order_cafe_item/', { item_id: itemId, quantity: 1 }).subscribe({
+      next: () => {
+        this.successMessage = 'Order placed and added to your tab!';
+        this.fetchMyTab();
+        setTimeout(() => this.successMessage = '', 4000);
+      },
+      error: () => this.errorMessage = 'Failed to place order.'
+    });
+  }
+
+  reserveConsole(stationId: string) {
+    this.apiService.post('/client-services/book_console/', { station_id: stationId }).subscribe({
+      next: (res: any) => {
+        this.successMessage = `Console reserved! ${res.free_minutes} free minutes applied.`;
+        this.fetchMyTab();
+        setTimeout(() => this.successMessage = '', 4000);
+      },
+      error: () => this.errorMessage = 'Failed to reserve console.'
+    });
   }
 
   getFilteredBookings(): any[] {
@@ -302,10 +357,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
 
     if (booking.voucher) {
+      const isFullyRedeemed = booking.voucher.is_cafe_discount_used && booking.voucher.is_gaming_perk_used;
+      
       masterPayload.lounge_access = {
         voucher_id: booking.voucher.id,
-        perk: booking.voucher.perk_description,
-        status: booking.voucher.is_redeemed ? 'REDEEMED' : 'ACTIVE_VALID'
+        perk: `${booking.voucher.cafe_discount_percentage}% Cafe & ${booking.voucher.free_gaming_minutes}m Gaming`,
+        status: isFullyRedeemed ? 'REDEEMED' : 'ACTIVE_VALID'
       };
     } else {
       masterPayload.lounge_access = { status: 'NO_VOUCHER_ATTACHED' };

@@ -13,13 +13,15 @@ import { environment } from '../../environments/environments';
   imports: [FormsModule, CommonModule]
 })
 export class AdminComponent implements OnInit {
-  activeTab: 'clients' | 'office' | 'services' | 'categories' | 'logs' | 'vehicles' = 'clients';
+  activeTab: 'clients' | 'office' | 'services' | 'categories' | 'logs' | 'vehicles' | 'cafe' | 'gaming' = 'clients';
 
   logs: any[] = [];
   users: any[] = [];
   services: any[] = [];
   categories: any[] = [];
   vehiclesIndex: any[] = [];
+  cafeItems: any[] = [];
+  gamingStations: any[] = [];
 
   newOfficeEmail = '';
   newOfficePassword = '';
@@ -28,7 +30,8 @@ export class AdminComponent implements OnInit {
   newCategoryName = '';
 
   newVehicle = { brand: '', name: '', category: '' };
-
+  newCafeItem = { name: '', category: 'Beverage', price: null };
+  newGamingStation = { name: '', hourly_rate: null };
   newService = {
     name: '',
     description: '',
@@ -57,7 +60,7 @@ export class AdminComponent implements OnInit {
     this.refreshData();
   }
 
-  setTab(tab: 'clients' | 'office' | 'services' | 'categories' | 'logs' | 'vehicles') {
+  setTab(tab: 'clients' | 'office' | 'services' | 'categories' | 'logs' | 'vehicles'| 'cafe' | 'gaming') {
     this.activeTab = tab;
     this.refreshData();
   }
@@ -86,6 +89,10 @@ export class AdminComponent implements OnInit {
       this.fetchAuditLogs();
     } else if (this.activeTab === 'vehicles') {
       this.fetchMasterVehicles();
+    } else if (this.activeTab === 'cafe') {
+      this.fetchCafeItems();
+    } else if (this.activeTab === 'gaming') {
+      this.fetchGamingStations();
     } else {
       this.fetchUsers();
     }
@@ -234,6 +241,55 @@ export class AdminComponent implements OnInit {
     if (!confirm('Are you sure you want to delete this car model from the global catalog?')) return;
     this.http.delete(`${environment.apiUrl}/vehicles/${id}/`, { headers: this.getHeaders() })
       .subscribe(() => this.fetchMasterVehicles());
+  }
+
+  fetchCafeItems() {
+    this.http.get(`${environment.apiUrl}/cafe/`, { headers: this.getHeaders() })
+      .subscribe((data: any) => {
+        this.cafeItems = data;
+        this.cdr.detectChanges();
+      });
+  }
+
+  createCafeItem() {
+    if (!this.newCafeItem.name || !this.newCafeItem.category || !this.newCafeItem.price) return;
+    this.http.post(`${environment.apiUrl}/cafe/`, this.newCafeItem, { headers: this.getHeaders() })
+      .subscribe(() => {
+        this.fetchCafeItems();
+        this.newCafeItem = { name: '', category: 'Beverage', price: null };
+      });
+  }
+
+  deleteCafeItem(id: number) {
+    if (!confirm('Are you sure you want to delete this Cafe Item?')) return;
+    this.http.delete(`${environment.apiUrl}/cafe/${id}/`, { headers: this.getHeaders() })
+      .subscribe(() => this.fetchCafeItems());
+  }
+
+  // ==========================================
+  // GAMING STATIONS CRUD
+  // ==========================================
+  fetchGamingStations() {
+    this.http.get(`${environment.apiUrl}/gaming/`, { headers: this.getHeaders() })
+      .subscribe((data: any) => {
+        this.gamingStations = data;
+        this.cdr.detectChanges();
+      });
+  }
+
+  createGamingStation() {
+    if (!this.newGamingStation.name || !this.newGamingStation.hourly_rate) return;
+    this.http.post(`${environment.apiUrl}/gaming/`, this.newGamingStation, { headers: this.getHeaders() })
+      .subscribe(() => {
+        this.fetchGamingStations();
+        this.newGamingStation = { name: '', hourly_rate: null };
+      });
+  }
+
+  deleteGamingStation(id: number) {
+    if (!confirm('Are you sure you want to delete this Gaming Station?')) return;
+    this.http.delete(`${environment.apiUrl}/gaming/${id}/`, { headers: this.getHeaders() })
+      .subscribe(() => this.fetchGamingStations());
   }
 
   fetchAuditLogs() {

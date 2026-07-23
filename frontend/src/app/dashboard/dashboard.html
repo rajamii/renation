@@ -31,6 +31,16 @@
         class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer bg-transparent">
         My Garage
       </button>
+      <button (click)="setTab('cafe')" [class.text-white]="activeTab === 'cafe'"
+        [class.border-white]="activeTab === 'cafe'"
+        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all bg-transparent">
+        Cafe Menu
+      </button>
+      <button (click)="setTab('gaming')" [class.text-white]="activeTab === 'gaming'"
+        [class.border-white]="activeTab === 'gaming'"
+        class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all bg-transparent">
+        Gaming Lounge
+      </button>
       <button (click)="setTab('profile')" [class.text-white]="activeTab === 'profile'"
         [class.border-white]="activeTab === 'profile'"
         class="pb-3 text-xs uppercase tracking-wider font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer bg-transparent">
@@ -279,9 +289,59 @@
     </div>
     <!-- END TAB 2 -->
 
+    <!-- CAFE TAB -->
+    <div *ngIf="activeTab === 'cafe'" class="animate-fade-in grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div *ngFor="let item of cafeMenu"
+        class="bg-neutral-900/40 border border-neutral-900 rounded-xl p-5 flex flex-col justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-white">{{ item.name }}</h3>
+          <p class="text-[10px] text-neutral-500 font-mono uppercase mt-1">{{ item.category }}</p>
+          <p class="text-lg font-medium text-emerald-400 mt-3">₹{{ item.price }}</p>
+        </div>
+        <button (click)="orderCafeItem(item.id)"
+          class="w-full mt-4 bg-white text-black px-4 py-2 rounded-lg text-xs font-bold hover:bg-neutral-200 transition-colors">
+          Add to Tab
+        </button>
+      </div>
+    </div>
+
+    <!-- GAMING TAB -->
+    <div *ngIf="activeTab === 'gaming'" class="animate-fade-in grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div *ngFor="let station of gamingStations"
+        class="bg-neutral-900/40 border border-neutral-900 rounded-xl p-5 flex flex-col justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-white">{{ station.name }}</h3>
+          <p class="text-lg font-medium text-blue-400 mt-3">₹{{ station.hourly_rate }} / hr</p>
+        </div>
+        <button (click)="reserveConsole(station.id)"
+          class="w-full mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-500 transition-colors">
+          Reserve Console
+        </button>
+      </div>
+    </div>
+
+
     <!-- TAB 3: ACCOUNT PROFILE INFO METADATA MAP -->
     <div *ngIf="activeTab === 'profile'"
       class="max-w-2xl mx-auto bg-neutral-900/40 border border-neutral-900 rounded-xl p-6 shadow-xl animate-fade-in">
+      <!-- ACTIVE TAB SUMMARY FOR CUSTOMER -->
+    <div *ngIf="myTab && myTab.line_items.length > 0" class="mb-6 bg-neutral-900/40 border border-neutral-800 rounded-xl p-6">
+      <h2 class="text-base font-medium text-white mb-4">Your Active Tab</h2>
+      <div *ngFor="let item of myTab.line_items" class="flex justify-between text-xs text-neutral-400 mb-2">
+        <span>{{ item.description }}</span>
+        <span>₹{{ item.amount }}</span>
+      </div>
+      
+      <div *ngIf="myTab.status === 'AWAITING_PAYMENT'" class="mt-6 pt-4 border-t border-neutral-800">
+        <p class="text-xs text-amber-400 mb-3">Your bill has been finalized by the studio.</p>
+        <button (click)="payTabOnline()" class="w-full bg-emerald-600 text-white px-4 py-3 rounded-lg text-sm font-bold hover:bg-emerald-500">
+          Pay Final Bill Online
+        </button>
+      </div>
+      <div *ngIf="myTab.status === 'OPEN'" class="mt-4 pt-4 border-t border-neutral-800">
+        <p class="text-xs text-neutral-500 italic">Bill is open. Present your QR pass at the desk to finalize.</p>
+      </div>
+    </div>
       <div class="flex justify-between items-center mb-6 pb-4 border-b border-neutral-800">
         <div>
           <h2 class="text-base font-medium text-white">Account Portfolio Matrix</h2>

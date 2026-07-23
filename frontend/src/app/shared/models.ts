@@ -1,8 +1,10 @@
 export interface DigitalVoucher {
   id: string;
-  perk_description: string;
-  is_redeemed: boolean;
-  redeemed_at?: string;
+  cafe_discount_percentage: number;
+  is_cafe_discount_used: boolean;
+  free_gaming_minutes: number;
+  is_gaming_perk_used: boolean;
+  created_at: string;
 }
 
 export interface Booking {

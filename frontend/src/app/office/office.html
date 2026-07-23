@@ -17,6 +17,263 @@
   <!-- Main Workspace -->
   <main class="max-w-6xl mx-auto px-6 py-12">
 
+    <!-- Add this above your active pipeline queue section -->
+    <div class="flex items-center gap-4 mb-6 border-b border-neutral-900 pb-4">
+      <button (click)="activeTab = 'bookings'" [class.text-white]="activeTab === 'bookings'"
+        class="text-xs uppercase tracking-wider font-medium text-neutral-500 hover:text-white transition-colors">
+        Live Pipeline
+      </button>
+      <button (click)="activeTab = 'pos'" [class.text-white]="activeTab === 'pos'"
+        class="text-xs uppercase tracking-wider font-medium text-neutral-500 hover:text-white transition-colors">
+        Walk-In POS
+      </button>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- WALK-IN POS DASHBOARD -->
+    <!-- ========================================== -->
+    <div *ngIf="activeTab === 'pos'" class="animate-fade-in space-y-6">
+
+      <!-- STEP 1: CUSTOMER INTAKE (Hidden if a client is already selected) -->
+      <div *ngIf="!selectedPosClient" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Left Column: Search Existing -->
+        <div class="bg-neutral-900/40 border border-neutral-900 rounded-xl p-6">
+          <h3 class="text-sm font-medium text-white mb-4">Search Existing Client</h3>
+          <div class="flex gap-2 mb-4">
+            <input type="text" [(ngModel)]="posSearchQuery" placeholder="Email, Phone, or Username"
+              class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700">
+            <button (click)="searchPosClient()"
+              class="bg-white text-black px-4 py-2 rounded-lg text-xs font-bold hover:bg-neutral-200">Search</button>
+          </div>
+
+          <!-- Search Results -->
+          <div class="space-y-2 mt-4" *ngIf="posSearchResults.length > 0">
+            <div *ngFor="let client of posSearchResults" (click)="selectPosClient(client)"
+              class="p-3 bg-neutral-950 border border-neutral-800 rounded-lg cursor-pointer hover:border-emerald-500 transition-colors flex justify-between items-center">
+              <div>
+                <p class="text-xs font-bold text-white">{{ client.first_name || 'No Name' }} {{ client.last_name || ''
+                  }}</p>
+                <p class="text-[10px] text-neutral-500 font-mono">{{ client.email }} | {{ client.phone_number || 'No
+                  Phone' }}</p>
+              </div>
+              <span class="text-[10px] bg-emerald-950 text-emerald-400 px-2 py-1 rounded">Select</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Rapid Profile & Guest -->
+        <div class="bg-neutral-900/40 border border-neutral-900 rounded-xl p-6">
+          <h3 class="text-sm font-medium text-white mb-4">New Walk-In</h3>
+          <div class="space-y-3 mb-6">
+            <input type="text" [(ngModel)]="rapidProfileForm.first_name" placeholder="First Name (Optional)"
+              class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+            <input type="tel" [(ngModel)]="rapidProfileForm.phone_number" placeholder="Phone Number (Required)"
+              class="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+            <button (click)="submitRapidProfile()"
+              class="w-full bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-500 transition-colors">
+              Create Rapid Profile
+            </button>
+          </div>
+
+          <div class="relative flex py-2 items-center">
+            <div class="flex-grow border-t border-neutral-800"></div>
+            <span class="flex-shrink-0 mx-4 text-neutral-500 text-[10px] uppercase font-mono">OR</span>
+            <div class="flex-grow border-t border-neutral-800"></div>
+          </div>
+
+          <button (click)="enableGuestCheckout()"
+            class="w-full mt-4 border border-neutral-700 text-neutral-400 px-4 py-2 rounded-lg text-xs font-bold hover:bg-neutral-800 hover:text-white transition-colors">
+            Proceed as Anonymous Guest
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: ACTIVE INVOICE/TAB (Shown once client is selected) -->
+      <div *ngIf="selectedPosClient" class="bg-neutral-900/40 border border-neutral-900 rounded-xl p-6">
+        <div class="flex justify-between items-center border-b border-neutral-900 pb-4 mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white">Active Tab: {{ selectedPosClient.first_name }}</h2>
+            <span *ngIf="isGuestCheckout"
+              class="text-[10px] bg-rose-950 text-rose-400 px-2 py-0.5 rounded font-mono uppercase mt-1 inline-block">Guest
+              (No Perks/Loyalty)</span>
+            <span *ngIf="!isGuestCheckout"
+              class="text-[10px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded font-mono uppercase mt-1 inline-block">Registered
+              Client</span>
+          </div>
+          <button (click)="resetPos()"
+            class="text-xs text-neutral-500 hover:text-rose-400 transition-colors border-none bg-transparent">
+            Clear Tab
+          </button>
+        </div>
+
+        <!-- Unified Billing Action Buttons -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <button
+            (click)="showOfflineBookingForm = !showOfflineBookingForm; showCafeForm = false; showGamingForm = false"
+            class="p-4 border rounded-xl transition-colors flex flex-col items-center justify-center gap-2"
+            [ngClass]="showOfflineBookingForm ? 'bg-neutral-800 border-neutral-600 text-white' : 'border-dashed border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500'">
+            <span class="text-xl">{{ showOfflineBookingForm ? '-' : '+' }}</span>
+            <span class="text-xs font-medium">Book Detailing</span>
+          </button>
+
+          <button (click)="showCafeForm = !showCafeForm; showOfflineBookingForm = false; showGamingForm = false"
+            class="p-4 border rounded-xl transition-colors flex flex-col items-center justify-center gap-2"
+            [ngClass]="showCafeForm ? 'bg-neutral-800 border-neutral-600 text-white' : 'border-dashed border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500'">
+            <span class="text-xl">{{ showCafeForm ? '-' : '+' }}</span>
+            <span class="text-xs font-medium">Add Cafe Item</span>
+          </button>
+
+          <button (click)="showGamingForm = !showGamingForm; showOfflineBookingForm = false; showCafeForm = false"
+            class="p-4 border rounded-xl transition-colors flex flex-col items-center justify-center gap-2"
+            [ngClass]="showGamingForm ? 'bg-neutral-800 border-neutral-600 text-white' : 'border-dashed border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500'">
+            <span class="text-xl">{{ showGamingForm ? '-' : '+' }}</span>
+            <span class="text-xs font-medium">Assign Gaming Console</span>
+          </button>
+        </div>
+
+        <div *ngIf="showOfflineBookingForm"
+          class="bg-neutral-950 border border-neutral-800 rounded-xl p-5 mb-6 animate-fade-in">
+          <h3 class="text-xs font-bold text-neutral-300 uppercase tracking-wider mb-4">New Service Configuration</h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Service Selection -->
+            <div class="md:col-span-2">
+              <label class="block text-[10px] text-neutral-500 mb-1">Service Type</label>
+              <select [(ngModel)]="offlineBookingPayload.service"
+                class="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700">
+                <option value="" disabled selected>-- Select a Service --</option>
+                <option *ngFor="let s of posServices" [value]="s.id">{{ s.name }} (Est. {{ s.estimated_duration_hours
+                  }}h)</option>
+              </select>
+            </div>
+
+            <!-- Vehicle Details -->
+            <div>
+              <label class="block text-[10px] text-neutral-500 mb-1">Vehicle Brand</label>
+              <select [(ngModel)]="offlineBookingPayload.brand" (change)="onPosBrandChange()"
+                class="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700">
+                <option value="" disabled selected>-- Brand --</option>
+                <option *ngFor="let brand of uniquePosBrands" [value]="brand">{{ brand }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-neutral-500 mb-1">Vehicle Model</label>
+              <select [(ngModel)]="offlineBookingPayload.vehicle" [disabled]="!offlineBookingPayload.brand"
+                class="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 disabled:opacity-50">
+                <option value="" disabled selected>-- Model (Category) --</option>
+                <option *ngFor="let v of filteredPosModels" [value]="v.id">{{ v.name }} ({{ v.category_name }})</option>
+              </select>
+            </div>
+
+            <!-- License Plate & Time -->
+            <div>
+              <label class="block text-[10px] text-neutral-500 mb-1">License Plate</label>
+              <input type="text" [(ngModel)]="offlineBookingPayload.license_plate" placeholder="e.g. MH12AB1234"
+                class="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white uppercase focus:outline-none focus:border-neutral-700">
+            </div>
+            <div>
+              <label class="block text-[10px] text-neutral-500 mb-1">Intake Time</label>
+              <input type="time" [(ngModel)]="offlineBookingPayload.assigned_time"
+                class="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700">
+            </div>
+          </div>
+
+          <div class="mt-5 flex justify-end">
+            <button (click)="submitOfflineBooking()"
+              class="bg-white text-black px-5 py-2 rounded-lg text-xs font-bold hover:bg-neutral-200 transition-colors">
+              Confirm & Add to Invoice
+            </button>
+          </div>
+        </div>
+        <!-- CAFE POS FORM -->
+        <div *ngIf="showCafeForm" class="bg-neutral-950 border border-neutral-800 rounded-xl p-5 mb-6 animate-fade-in">
+          <h3 class="text-xs font-bold text-neutral-300 uppercase tracking-wider mb-4">Cafe Order Menu</h3>
+          <div class="flex gap-4">
+            <select [(ngModel)]="cafePayload.item_id"
+              class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700">
+              <option value="" disabled selected>-- Select Menu Item --</option>
+              <option *ngFor="let item of posCafeMenu" [value]="item.id">{{ item.name }} (₹{{ item.price }})</option>
+            </select>
+            <input type="number" [(ngModel)]="cafePayload.quantity" min="1"
+              class="w-20 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700">
+            <button (click)="addCafeItem()"
+              class="bg-emerald-600 text-white px-5 py-2 rounded-lg text-xs font-bold hover:bg-emerald-500 transition-colors">
+              Add to Tab
+            </button>
+          </div>
+        </div>
+
+        <!-- GAMING POS FORM -->
+        <div *ngIf="showGamingForm"
+          class="bg-neutral-950 border border-neutral-800 rounded-xl p-5 mb-6 animate-fade-in">
+          <h3 class="text-xs font-bold text-neutral-300 uppercase tracking-wider mb-4">Console Allocation</h3>
+          <div class="flex gap-4">
+            <select [(ngModel)]="gamingPayload.station_id"
+              class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700">
+              <option value="" disabled selected>-- Select Station --</option>
+              <option *ngFor="let console of posGamingStations" [value]="console.id">{{ console.name }} (₹{{
+                console.hourly_rate }}/hr)</option>
+            </select>
+            <button (click)="assignConsole()"
+              class="bg-blue-600 text-white px-5 py-2 rounded-lg text-xs font-bold hover:bg-blue-500 transition-colors">
+              Start Session
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="activeInvoice && activeInvoice.line_items.length > 0"
+          class="mt-8 border-t border-neutral-900 pt-6 animate-fade-in">
+          <div class="flex justify-between items-end mb-4">
+            <h3 class="text-sm font-bold text-white">Current Tab Ledger</h3>
+            <div class="text-right">
+              <p class="text-[10px] text-neutral-500 uppercase tracking-widest mb-1">Running Total</p>
+              <p class="text-2xl font-bold text-emerald-400">₹{{ invoiceTotal | number:'1.2-2' }}</p>
+            </div>
+          </div>
+
+          <div class="space-y-2 mb-6 max-h-64 overflow-y-auto pr-2">
+            <div *ngFor="let item of activeInvoice.line_items"
+              class="flex justify-between items-center bg-neutral-950 p-3 rounded border border-neutral-800 group transition-all hover:border-rose-900/50 hover:bg-neutral-900/50">
+              <div>
+                <span class="text-[10px] font-mono text-neutral-500 uppercase">{{ item.category }}</span>
+                <p class="text-xs text-neutral-200">{{ item.description }}</p>
+              </div>
+
+              <div class="flex items-center gap-4">
+                <span class="text-sm font-bold text-white">₹{{ item.amount }}</span>
+
+                <!-- Remove Item Button (Reveals on Hover) -->
+                <button (click)="removeLineItem(item.id)" title="Remove item"
+                  class="opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-400 transition-opacity cursor-pointer bg-transparent border-none p-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- BILLING ACTIONS -->
+          <button *ngIf="activeInvoice.status === 'OPEN'" (click)="finalizeTab()"
+            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex justify-between items-center px-6">
+            <span>Finalize Bill (Stop Timers)</span>
+            <span>→</span>
+          </button>
+
+          <button *ngIf="activeInvoice.status === 'AWAITING_PAYMENT'" (click)="markPaidCash()"
+            class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex justify-between items-center px-6">
+            <span>Collect Cash & Mark Paid</span>
+            <span>✓</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
     <!-- Active Pipeline Queue Section -->
     <div class="bg-neutral-900/30 border border-neutral-900 rounded-2xl overflow-hidden">
 

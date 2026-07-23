@@ -4,6 +4,8 @@ import '../services/api_client.dart';
 import '../services/logger_util.dart';
 import '../models/service_model.dart';
 import '../widgets/my_bookings_tab.dart';
+import '../widgets/cafe_menu_tab.dart';
+import '../widgets/gaming_lounge_tab.dart';
 import 'booking_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -132,6 +134,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final List<Widget> tabsList = [
       _buildBookServiceTab(),
       const MyBookingsTab(),
+      const CafeMenuTab(),
+      const GamingLoungeTab(),
       const ProfileView(),
     ];
 
@@ -143,11 +147,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ? "Workshop Menu"
               : _currentTabIndex == 1
               ? "Pipeline"
+              : _currentTabIndex == 2
+              ? "Cafe"
+              : _currentTabIndex == 3
+              ? "Lounge"
               : "Account",
         ),
       ),
       body: tabsList[_currentTabIndex],
-      // BottomNav uses the global theme now
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentTabIndex,
         onTap: (index) {
@@ -158,18 +165,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.build_circle_outlined),
-            activeIcon: Icon(Icons.build_circle),
             label: 'Book',
+            activeIcon: Icon(Icons.build_circle),
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment_outlined),
-            activeIcon: Icon(Icons.assignment),
             label: 'Bookings',
+            activeIcon: Icon(Icons.assignment),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.local_cafe_outlined),
+            label: 'Cafe',
+            activeIcon: Icon(Icons.local_cafe),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.gamepad_outlined),
+            label: 'Gaming',
+            activeIcon: Icon(Icons.gamepad),
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
             label: 'Profile',
+            activeIcon: Icon(Icons.person),
           ),
         ],
       ),

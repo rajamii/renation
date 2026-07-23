@@ -39,6 +39,14 @@
         [class.border-white]="activeTab === 'vehicles'"
         class="pb-4 text-sm font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">Vehicles
         Catalog</button>
+      <button (click)="setTab('cafe')" [class.text-white]="activeTab === 'cafe'"
+        [class.border-white]="activeTab === 'cafe'"
+        class="pb-4 text-sm font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">Cafe
+        Menu</button>
+      <button (click)="setTab('gaming')" [class.text-white]="activeTab === 'gaming'"
+        [class.border-white]="activeTab === 'gaming'"
+        class="pb-4 text-sm font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-300 transition-all cursor-pointer">Gaming
+        Stations</button>
     </div>
 
     <div class="animate-fade-in" *ngIf="activeTab === 'clients'">
@@ -310,6 +318,105 @@
           </div>
           <p *ngIf="vehiclesIndex.length === 0" class="text-xs text-neutral-600 text-center py-8">No matching catalog
             mappings loaded in the repository.</p>
+        </div>
+      </div>
+    </div>
+    <!-- CAFE MENU CRUD -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in" *ngIf="activeTab === 'cafe'">
+      <!-- Form Panel -->
+      <div class="bg-neutral-900/30 border border-neutral-900 p-6 rounded-2xl h-fit">
+        <h3 class="text-sm font-medium text-white mb-1">Add Cafe Item</h3>
+        <p class="text-[11px] text-neutral-500 mb-4 leading-relaxed">Add food and beverages to the POS system.</p>
+        <form (ngSubmit)="createCafeItem()" class="space-y-4">
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Item Name</label>
+            <input [(ngModel)]="newCafeItem.name" name="name" placeholder="e.g. Espresso" type="text" required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Category</label>
+            <select [(ngModel)]="newCafeItem.category" name="category" required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+              <option value="Beverage">Beverage</option>
+              <option value="Food">Food</option>
+              <option value="Snack">Snack</option>
+              <option value="Merchandise">Merchandise</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Price (INR)</label>
+            <input [(ngModel)]="newCafeItem.price" name="price" type="number" step="1" required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
+          </div>
+          <button type="submit"
+            class="w-full bg-white text-black text-xs font-medium py-2.5 rounded-xl hover:bg-neutral-200 transition-all cursor-pointer">Register
+            Menu Item</button>
+        </form>
+      </div>
+
+      <!-- List Panel -->
+      <div class="lg:col-span-2 bg-neutral-900/30 border border-neutral-900 rounded-2xl overflow-hidden">
+        <div class="p-6 border-b border-neutral-900">
+          <h2 class="text-base font-medium text-white">Cafe Master Directory</h2>
+        </div>
+        <div class="divide-y divide-neutral-900 max-h-[600px] overflow-y-auto">
+          <div *ngFor="let item of cafeItems"
+            class="p-4 px-6 flex items-center justify-between hover:bg-neutral-900/20 transition-all">
+            <div>
+              <p class="text-sm font-medium text-neutral-200">{{ item.name }}</p>
+              <p class="text-[10px] text-neutral-500 font-mono">Category: <span class="text-neutral-400 font-sans">{{
+                  item.category }}</span> | Price: <span class="text-emerald-400 font-sans font-bold">₹{{ item.price
+                  }}</span></p>
+            </div>
+            <button (click)="deleteCafeItem(item.id)"
+              class="text-xs text-neutral-500 hover:text-rose-400 px-3 py-1 border border-neutral-800 hover:border-rose-900/50 bg-neutral-950 rounded-xl transition-all cursor-pointer">Remove</button>
+          </div>
+          <p *ngIf="cafeItems.length === 0" class="text-xs text-neutral-600 text-center py-8">No items found in the
+            menu.</p>
+        </div>
+      </div>
+    </div>
+    <!-- GAMING STATIONS CRUD -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in" *ngIf="activeTab === 'gaming'">
+      <!-- Form Panel -->
+      <div class="bg-neutral-900/30 border border-neutral-900 p-6 rounded-2xl h-fit">
+        <h3 class="text-sm font-medium text-white mb-1">Add Gaming Station</h3>
+        <p class="text-[11px] text-neutral-500 mb-4 leading-relaxed">Register active consoles available for rent.</p>
+        <form (ngSubmit)="createGamingStation()" class="space-y-4">
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Station Name</label>
+            <input [(ngModel)]="newGamingStation.name" name="name" placeholder="e.g. PS5 Console 1" type="text" required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Hourly Rate (INR)</label>
+            <input [(ngModel)]="newGamingStation.hourly_rate" name="hourly_rate" type="number" step="1" required
+              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
+          </div>
+          <button type="submit"
+            class="w-full bg-white text-black text-xs font-medium py-2.5 rounded-xl hover:bg-neutral-200 transition-all cursor-pointer">Register
+            Gaming Station</button>
+        </form>
+      </div>
+
+      <!-- List Panel -->
+      <div class="lg:col-span-2 bg-neutral-900/30 border border-neutral-900 rounded-2xl overflow-hidden">
+        <div class="p-6 border-b border-neutral-900">
+          <h2 class="text-base font-medium text-white">Gaming Stations Directory</h2>
+        </div>
+        <div class="divide-y divide-neutral-900 max-h-[600px] overflow-y-auto">
+          <div *ngFor="let station of gamingStations"
+            class="p-4 px-6 flex items-center justify-between hover:bg-neutral-900/20 transition-all">
+            <div>
+              <p class="text-sm font-medium text-neutral-200">{{ station.name }}</p>
+              <p class="text-[10px] text-neutral-500 font-mono">Rate: <span
+                  class="text-blue-400 font-sans font-bold">₹{{ station.hourly_rate }} / hr</span></p>
+            </div>
+            <button (click)="deleteGamingStation(station.id)"
+              class="text-xs text-neutral-500 hover:text-rose-400 px-3 py-1 border border-neutral-800 hover:border-rose-900/50 bg-neutral-950 rounded-xl transition-all cursor-pointer">Remove</button>
+          </div>
+          <p *ngIf="gamingStations.length === 0" class="text-xs text-neutral-600 text-center py-8">No gaming stations
+            registered.</p>
         </div>
       </div>
     </div>

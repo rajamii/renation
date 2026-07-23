@@ -2,7 +2,10 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
-    ServiceViewSet, 
+    ServiceViewSet,
+    CafeItemViewSet,
+    GamingStationViewSet,
+    MasterInvoiceViewSet, 
     BookingViewSet, 
     ConfigurationViewSet, 
     AdminDashboardViewSet,
@@ -13,7 +16,8 @@ from .views import (
     ApplyDiscountView,
     RewardDashboardView,
     VehicleMasterViewSet,
-    GarageViewSet
+    GarageViewSet,
+    ClientSelfServiceViewSet
 )
 
 router = DefaultRouter()
@@ -27,6 +31,10 @@ router.register(r'config', ConfigurationViewSet, basename='config')
 router.register(r'categories', VehicleCategoryViewSet, basename='categories')
 router.register(r'vehicles', VehicleMasterViewSet, basename='vehicles')
 router.register(r'garage', GarageViewSet, basename='garage')
+router.register(r'cafe', CafeItemViewSet, basename='cafe')
+router.register(r'gaming', GamingStationViewSet, basename='gaming')
+router.register(r'invoices', MasterInvoiceViewSet, basename='invoices')
+router.register(r'client-services', ClientSelfServiceViewSet, basename='client-services')
 
 # Custom Admin command console endpoint mappings
 router.register(r'admin', AdminDashboardViewSet, basename='admin-dashboard')

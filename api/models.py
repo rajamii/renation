@@ -138,9 +138,75 @@ class ServicePriceMatrix(models.Model):
 
     def __str__(self):
         return f"{self.service.name} - {self.category.name}: ₹{self.price_in_rupees}"
+    
+# ==========================================
+# UNIFIED BILLING & INVOICE SYSTEM
+# ==========================================
+
+class MasterInvoice(models.Model):
+    STATUS_CHOICES = [
+        ('OPEN', 'Open Tab'),
+        ('AWAITING_PAYMENT', 'Bill Finalized - Pending Payment'),
+        ('PAID', 'Settled'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='OPEN')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Invoice #{self.id} - {self.status}"
+
+class InvoiceLineItem(models.Model):
+    CATEGORY_CHOICES = [
+        ('DETAILING', 'Workshop Detailing'),
+        ('CAFE', 'Cafe & Lounge'),
+        ('GAMING', 'Gaming Parlor'),
+    ]
+    invoice = models.ForeignKey(MasterInvoice, on_delete=models.CASCADE, related_name='line_items')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    description = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.category}: {self.description} - {self.amount}"
+
+# ==========================================
+# CAFE & GAMING PARLOR MODELS
+# ==========================================
+
+class CafeItem(models.Model):
+    name = models.CharField(max_length=100)
+    category = models.CharField(max_length=50)
+    price = models.DecimalField(max_digits=8, decimal_places=2)
+    is_available = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.price}"
+
+class GamingStation(models.Model):
+    name = models.CharField(max_length=50)
+    hourly_rate = models.DecimalField(max_digits=8, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+class GamingSession(models.Model):
+    invoice = models.ForeignKey(MasterInvoice, on_delete=models.CASCADE, related_name='gaming_sessions')
+    station = models.ForeignKey(GamingStation, on_delete=models.PROTECT)
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    complimentary_minutes_applied = models.IntegerField(default=0)
 
 
 class Booking(models.Model):
+    SOURCE_CHOICES = [
+        ('ONLINE', 'App/Website'),
+        ('OFFLINE', 'Walk-in/Counter'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
     service = models.ForeignKey(Service, on_delete=models.PROTECT)
     garage_vehicle = models.ForeignKey(Garage, on_delete=models.PROTECT, related_name='bookings', null=True, blank=True)
@@ -156,6 +222,9 @@ class Booking(models.Model):
     
     estimated_delivery_timeline = models.CharField(max_length=100, blank=True, null=True)
     final_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+
+    booking_source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='ONLINE')
+    master_invoice = models.ForeignKey(MasterInvoice, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings')
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -198,8 +267,13 @@ class Referral(models.Model):
 class DigitalVoucher(models.Model):
     booking = models.OneToOneField('Booking', on_delete=models.CASCADE, related_name='voucher')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='voucher')
-    perk_description = models.CharField(max_length=255, default="Free Coffee & Console Lounge Access")
-    is_redeemed = models.BooleanField(default=False)
+    
+    cafe_discount_percentage = models.IntegerField(default=10)
+    is_cafe_discount_used = models.BooleanField(default=False)
+    
+    free_gaming_minutes = models.IntegerField(default=30)
+    is_gaming_perk_used = models.BooleanField(default=False)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

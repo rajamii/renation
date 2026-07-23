@@ -5,6 +5,11 @@ from .models import (
     ServicePriceMatrix, 
     VehicleMaster,
     Garage,
+    MasterInvoice,
+    InvoiceLineItem,
+    CafeItem,
+    GamingStation,
+    GamingSession,
     Booking, 
     BookingLog, 
     VehicleCategoryMaster, 
@@ -22,9 +27,10 @@ User = get_user_model()
 # ==========================================
 
 class UserSerializer(serializers.ModelSerializer):
+    phone_number = serializers.CharField(source='profile.phone_number', read_only=True)
     class Meta:
         model = User
-        fields = ['id', 'email', 'role_id']
+        fields = ['id', 'email', 'first_name', 'last_name', 'username', 'phone_number', 'role_id']
 
 class RegisterSerializer(serializers.ModelSerializer):
     referral_code = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
@@ -102,6 +108,16 @@ class VehicleCategoryMasterSerializer(serializers.ModelSerializer):
         model = VehicleCategoryMaster
         fields = ['code', 'name']
 
+class CafeItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CafeItem
+        fields = '__all__'
+
+class GamingStationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GamingStation
+        fields = '__all__'
+
 class BookingStatusMasterSerializer(serializers.ModelSerializer):
     class Meta:
         model = BookingStatusMaster
@@ -157,6 +173,21 @@ class ServiceSerializer(serializers.ModelSerializer):
                 
         return instance
 
+# ==========================================
+# BILLING & CAFE/GAMING SERIALIZERS
+# ==========================================
+class InvoiceLineItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvoiceLineItem
+        fields = '__all__'
+
+class MasterInvoiceSerializer(serializers.ModelSerializer):
+    line_items = InvoiceLineItemSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = MasterInvoice
+        fields = ['id', 'user', 'status', 'created_at', 'line_items']
+
 
 # ==========================================
 # WORKSHOP CORE OPERATIONAL SERIALIZERS
@@ -165,12 +196,22 @@ class ServiceSerializer(serializers.ModelSerializer):
 class DigitalVoucherSerializer(serializers.ModelSerializer):
     class Meta:
         model = DigitalVoucher
-        fields = ['id', 'perk_description', 'is_redeemed', 'created_at']
+        fields = [
+            'id', 
+            'cafe_discount_percentage', 
+            'is_cafe_discount_used', 
+            'free_gaming_minutes', 
+            'is_gaming_perk_used', 
+            'created_at'
+        ]
 
 class BookingSerializer(serializers.ModelSerializer):
     status = serializers.SlugRelatedField(slug_field='code', queryset=BookingStatusMaster.objects.all(), required=False)
     voucher = DigitalVoucherSerializer(read_only=True, allow_null=True)
     garage_vehicle = serializers.PrimaryKeyRelatedField(queryset=Garage.objects.all(), required=True)
+    client_id = serializers.IntegerField(write_only=True, required=False) 
+    is_guest = serializers.BooleanField(write_only=True, required=False, default=False)
+    booking_source = serializers.ChoiceField(choices=Booking.SOURCE_CHOICES, default='ONLINE')
     status_name = serializers.CharField(source='status.name', read_only=True)
     service_name = serializers.CharField(source='service.name', read_only=True)
     slot_start = serializers.TimeField(source='slot.start_time', read_only=True)
@@ -185,7 +226,7 @@ class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = '__all__'
-        read_only_fields = ['user', 'status', 'final_price', 'payment_window_start']
+        read_only_fields = ['user', 'status', 'final_price', 'payment_window_start', 'master_invoice']
 
 # ==========================================
 # REFERRAL & LOYALTY SERIALIZERS
