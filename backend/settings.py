@@ -62,25 +62,25 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# DATABASES = {
-#     'default': dj_database_url.config(
-#         default=os.environ.get('DATABASE_URL'),
-#         conn_max_age=600,
-#         ssl_require=True
-#     )
-# }
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'refurbnation',       # Database name
-        'USER': 'postgres',         # Your PostgreSQL username
-        'PASSWORD': 'postgres',  # Your PostgreSQL password
-        'HOST': 'localhost',        
-        'PORT': '5433',             # Default PostgreSQL port
-        'CONN_MAX_AGE': 300,          # Don't reuse connections — avoids aborted transaction state
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'refurbnation',       # Database name
+#         'USER': 'postgres',         # Your PostgreSQL username
+#         'PASSWORD': 'postgres',  # Your PostgreSQL password
+#         'HOST': 'localhost',        
+#         'PORT': '5433',             # Default PostgreSQL port
+#         'CONN_MAX_AGE': 300,          # Don't reuse connections — avoids aborted transaction state
+#     }
+# }
 
 AUTH_USER_MODEL = 'api.User'
 
