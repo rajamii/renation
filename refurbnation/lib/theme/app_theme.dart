@@ -87,6 +87,26 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
       ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: AppColors.surface, // Uses your dark surface color
+        elevation: 0,
+        selectedItemColor: Color(
+          0xFFB9FF66,
+        ), // Neon green for active selected item
+        unselectedItemColor:
+            Colors.white70, // White/Off-white for unselected items
+        type: BottomNavigationBarType.fixed,
+        showUnselectedLabels: true,
+        selectedLabelStyle: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.1,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 

@@ -51,7 +51,7 @@ class AuthProvider with ChangeNotifier {
         String role = response.data['role'] ?? 'USER';
 
         if (role != 'USER') {
-          AppLogger.log("Login Denied: Only 'USER' role is allowed.");
+          AppLogger.log("Login Denied: Only Customers are allowed.");
           return false;
         }
 

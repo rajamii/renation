@@ -30,41 +30,20 @@ export class LoginComponent {
 
   onSubmit() {
     const credentials = { email: this.email, password: this.password };
-
-    if (this.isLogin) {
-      // Execute login sequence using your Signals-based AuthService
-      this.authService.login(credentials).subscribe({
-        next: () => {
-          // Redirect dynamically based on the role your backend sent back
-          const role = localStorage.getItem('role');
-          if (role === 'ADMIN') this.router.navigate(['/admin']);
-          else if (role === 'OFFICE') this.router.navigate(['/office']);
-          else this.router.navigate(['/dashboard']);
-        },
-        error: (err) => console.error('Authentication failed', err)
-      });
-    } else {
-      const registerPayload = {
-        ...credentials,
-        username: this.username,
-        first_name: this.firstName,
-        last_name: this.lastName,
-        phone_number: this.phoneNumber,
-        referral_code: this.referralCode ? this.referralCode : null
-      };
-
-      this.authService.register(registerPayload).subscribe({
-        next: () => {
-          this.isLogin = true;
-          this.password = '';
-          this.referralCode = '';
-          this.firstName = '';
-          this.lastName = '';
-          this.username = '';
-          this.phoneNumber = '';
-        },
-        error: (err) => console.error('Registration failed', err)
-      });
-    }
+    this.authService.login(credentials).subscribe({
+      next: () => {
+        const role = localStorage.getItem('role');
+        if (role === 'ADMIN') {
+          this.router.navigate(['/admin']);
+        } else if (role === 'OFFICE') {
+          this.router.navigate(['/office']);
+        } else {
+          // If a regular user tries to log into the internal portal:
+          alert('This portal is restricted to internal staff. Please use the mobile app or PWA.');
+          this.authService.logout();
+        }
+      },
+      error: (err) => console.error('Authentication failed', err)
+    });
   }
 }

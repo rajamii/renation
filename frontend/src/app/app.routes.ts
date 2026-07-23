@@ -4,29 +4,23 @@ import { AdminComponent } from './admin/admin';
 import { LoginComponent } from './login/login';
 import { LandingComponent } from './landing/landing';
 import { OfficeComponent } from './office/office'; 
-import { DashboardComponent } from './dashboard/dashboard';
 
 export const routes: Routes = [
-  { path: '', component: LandingComponent }, // Public
-  { path: 'login', component: LoginComponent }, // Public
+  { path: '', component: LandingComponent },
+  { path: 'login', component: LoginComponent },
   
-  // Protected Routes
+  // Protected Admin & Office Staff Routes Only
   { 
     path: 'admin', 
-    component: AdminComponent,
-    canActivate: [roleGuard(['ADMIN'])] // Only Admin can access
+    component: AdminComponent, 
+    canActivate: [roleGuard(['ADMIN'])] 
   },
   { 
     path: 'office', 
-    component: OfficeComponent, // Replace with your actual office component
-    canActivate: [roleGuard(['ADMIN', 'OFFICE'])] // Admins and Office staff can access
+    component: OfficeComponent, 
+    canActivate: [roleGuard(['ADMIN', 'OFFICE'])] 
   },
-  { 
-    path: 'dashboard', 
-    component: DashboardComponent, // Replace with your actual user dashboard
-    canActivate: [roleGuard(['ADMIN', 'OFFICE', 'USER'])] // Any authenticated user
-  },
-  
+
   // Fallback route
   { path: '**', redirectTo: '' }
 ];

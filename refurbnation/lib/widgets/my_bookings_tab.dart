@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/api_client.dart';
 import '../services/logger_util.dart';
+import 'active_tab_modal.dart';
 
 class MyBookingsTab extends StatefulWidget {
   const MyBookingsTab({super.key});
@@ -14,23 +16,25 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
   final ApiClient _apiClient = ApiClient();
   List<dynamic> _userBookings = [];
   Map<int, dynamic> _garageMap = {};
+  Map<String, dynamic>? _tabData;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserBookings();
+    _loadData();
   }
 
-  Future<void> _loadUserBookings() async {
+  Future<void> _loadData() async {
     try {
       final response = await Future.wait([
         _apiClient.dio.get('/bookings/'),
         _apiClient.dio.get('/garage/'),
+        _apiClient.dio.get('/client-services/my_tab/'),
       ]);
-
       final List<dynamic> bookingsData = response[0].data ?? [];
       final List<dynamic> garageData = response[1].data ?? [];
+      final Map<String, dynamic>? tabData = response[2].data;
 
       final Map<int, dynamic> tempGarageMap = {};
       for (var item in garageData) {
@@ -42,12 +46,50 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
       setState(() {
         _userBookings = bookingsData;
         _garageMap = tempGarageMap;
+        _tabData = tabData;
         _isLoading = false;
       });
     } catch (e) {
       AppLogger.log("Failed to Load Data", e);
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _payOnline() async {
+    HapticFeedback.mediumImpact();
+    try {
+      await _apiClient.dio.post('/client-services/pay_online/');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment Successful! Tab settled.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment failed. Ensure bill is finalized by staff.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  void _openTabModal() {
+    if (_tabData == null) return;
+    HapticFeedback.selectionClick();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) =>
+          ActiveTabModal(tabData: _tabData!, onPaymentSuccess: _payOnline),
+    );
   }
 
   Color _getStatusColor(String status) {
@@ -99,7 +141,6 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
     final String vehicleName = _getVehicleName(booking);
     final String category = _getVehicleCategory(booking);
     final String licensePlate = _getLicensePlate(booking);
-
     final String qrPayload =
         "Booking ID: #${booking['id']}\n"
         "Vehicle: $vehicleName\n"
@@ -193,136 +234,164 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
       );
     }
 
-    if (_userBookings.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.black.withValues(alpha: 0.03),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.auto_awesome_rounded,
-                size: 48,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white38
-                    : Colors.black38,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              "PIPELINE CLEAR",
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontFamily: 'monospace',
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2.0,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Your workspace is currently empty.",
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      );
-    }
+    final hasActiveTab =
+        _tabData != null && (_tabData!['line_items'] as List).isNotEmpty;
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: _userBookings.length,
-      itemBuilder: (context, index) {
-        final booking = _userBookings[index];
-        final String status = booking['status'] ?? 'PENDING';
-        final statusColor = _getStatusColor(status);
-
-        final String vehicleName = _getVehicleName(booking);
-        final String vehicleCategory = _getVehicleCategory(booking);
-
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        booking['service_name'] ?? 'Workshop Treatment',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleLarge?.copyWith(fontSize: 17),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        "$vehicleName • $vehicleCategory",
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        "${booking['requested_date']}${booking['slot_start'] != null ? ' • ${booking['slot_start']} - ${booking['slot_end']}' : ''}",
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: _userBookings.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.1),
-                        border: Border.all(
-                          color: statusColor.withValues(alpha: 0.3),
-                          width: 1.5,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.03),
+                        shape: BoxShape.circle,
                       ),
-                      child: Text(
-                        status.toUpperCase(),
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
-                        ),
+                      child: Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 48,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white38
+                            : Colors.black38,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    IconButton(
-                      icon: const Icon(Icons.qr_code_2_rounded, size: 28),
-                      color: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () => _showQrModal(context, booking),
+                    const SizedBox(height: 24),
+                    Text(
+                      "PIPELINE CLEAR",
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2.0,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Your workspace is currently empty.",
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        );
-      },
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                itemCount: _userBookings.length,
+                itemBuilder: (context, index) {
+                  final booking = _userBookings[index];
+                  final String status = booking['status'] ?? 'PENDING';
+                  final statusColor = _getStatusColor(status);
+                  final String vehicleName = _getVehicleName(booking);
+                  final String vehicleCategory = _getVehicleCategory(booking);
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  booking['service_name'] ??
+                                      'Workshop Treatment',
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(fontSize: 17),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "$vehicleName • $vehicleCategory",
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                                const SizedBox(height: 14),
+                                Text(
+                                  "${booking['requested_date']}${booking['slot_start'] != null ? ' • ${booking['slot_start']} - ${booking['slot_end']}' : ''}",
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.color
+                                            ?.withValues(alpha: 0.7),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withValues(alpha: 0.1),
+                                  border: Border.all(
+                                    color: statusColor.withValues(alpha: 0.3),
+                                    width: 1.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  status.toUpperCase(),
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.qr_code_2_rounded,
+                                  size: 28,
+                                ),
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.color
+                                    ?.withValues(alpha: 0.8),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () => _showQrModal(context, booking),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+      ),
+      floatingActionButton: hasActiveTab
+          ? FloatingActionButton.extended(
+              onPressed: _openTabModal,
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.black,
+              icon: const Icon(Icons.receipt_long_rounded),
+              label: const Text(
+                "View Active Tab",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            )
+          : null,
     );
   }
 }
