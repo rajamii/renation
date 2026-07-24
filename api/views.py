@@ -77,6 +77,12 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
 
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            print("--- REGISTRATION ERRORS ---", serializer.errors)
+        return super().post(request, *args, **kwargs)
+
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 

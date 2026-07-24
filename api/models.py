@@ -53,14 +53,13 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, password=None, **extra_fields):
+    def create_superuser(self, email, password=None, username=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         
         admin_role, _ = RoleMaster.objects.get_or_create(code='ADMIN', defaults={'name': 'Admin'})
         extra_fields.setdefault('role', admin_role)
-
-        return self.create_user(email, password, **extra_fields)
+        return self.create_user(email, password, username=username, **extra_fields)
 
 
 class User(AbstractUser):

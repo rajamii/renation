@@ -81,36 +81,37 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Spacer(),
               // App Brand Header
               Text(
                 'refurbnation.',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1.5,
-                  color: Theme.of(context).primaryColor,
-                ),
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.5,
+                      color: Theme.of(context).primaryColor,
+                    ),
               ),
               const SizedBox(height: 8),
               Text(
                 !_isSignUpMode
                     ? 'Log in to manage your workshop assets.'
                     : 'Create an account to track your detailing pipeline.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontSize: 16),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(fontSize: 16),
               ),
-              const SizedBox(height: 48),
-
+              const SizedBox(height: 32),
               // Email Input
               TextField(
                 controller: _emailController,
@@ -122,7 +123,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 16),
-
               // Password Input
               TextField(
                 controller: _passwordController,
@@ -133,7 +133,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 style: const TextStyle(fontSize: 16),
               ),
-
               if (_isSignUpMode && !_isLoading) ...[
                 const SizedBox(height: 16),
                 TextField(
@@ -196,9 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ],
-
-              const Spacer(flex: 2),
-
+              const SizedBox(height: 32),
               // Action Button
               ElevatedButton(
                 onPressed: _isLoading ? null : _handleLogin,
@@ -214,7 +211,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     : Text(!_isSignUpMode ? 'Continue' : 'Sign Up'),
               ),
               const SizedBox(height: 16),
-
               // Toggle Between Login and Sign Up
               Center(
                 child: TextButton(
@@ -235,6 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

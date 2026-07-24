@@ -128,30 +128,32 @@ class _ProfileViewState extends State<ProfileView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "2026 Performance Map",
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontSize: 15),
-                ),
-                _isLoadingDashboard
-                    ? const SizedBox(
-                        height: 14,
-                        width: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(
-                        "$currentBookings/10 Bookings",
-                        style: const TextStyle(
-                          color: Color(0xFFB9FF66),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 13,
-                        ),
-                      ),
-              ],
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    Expanded( // 👈 Wrap title in Expanded to prevent right-side overflows
+      child: Text(
+        "2026 Performance Map",
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 15),
+        overflow: TextOverflow.ellipsis, // Cleanly truncates with '...' if needed
+      ),
+    ),
+    const SizedBox(width: 8), // Clean spacing between title & indicator
+    _isLoadingDashboard
+        ? const SizedBox(
+            height: 14,
+            width: 14,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Text(
+            "$currentBookings/10 Bookings",
+            style: const TextStyle(
+              color: Color(0xFFB9FF66),
+              fontWeight: FontWeight.w900,
+              fontSize: 13,
             ),
+          ),
+  ],
+),
             const SizedBox(height: 24),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -575,78 +577,82 @@ class _ProfileViewState extends State<ProfileView> {
 
             const SizedBox(height: 12),
 
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Theme.of(context).primaryColor.withAlpha(128),
-                  width: 1.5,
+Container(
+  padding: const EdgeInsets.all(18),
+  decoration: BoxDecoration(
+    color: Theme.of(context).cardColor,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(
+      color: Theme.of(context).primaryColor.withAlpha(128),
+      width: 1.5,
+    ),
+  ),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.local_activity,
+                  color: Theme.of(context).primaryColor,
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.local_activity,
-                            color: Theme.of(
-                              context,
-                            ).primaryColor, // Neon green icon
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            "REFERRAL CODE",
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
-                                ),
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                      ),
-                      Text(
-                        authProvider.referralCode.isNotEmpty
-                            ? authProvider.referralCode
-                            : "Fetching...",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontFamily: 'monospace',
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    "REFERRAL CODE",
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
                         ),
-                      ),
-                    ],
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.copy_all_rounded,
-                      color: isDark ? Colors.white70 : Colors.black54,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      if (authProvider.referralCode.isNotEmpty) {
-                        Clipboard.setData(
-                          ClipboardData(text: authProvider.referralCode),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Referral code copied!'),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
+            const SizedBox(height: 4),
+            Text(
+              authProvider.referralCode.isNotEmpty
+                  ? authProvider.referralCode
+                  : "Fetching...",
+              style: TextStyle(
+                fontSize: 18,
+                fontFamily: 'monospace',
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(width: 8),
+      IconButton(
+        icon: Icon(
+          Icons.copy_all_rounded,
+          color: isDark ? Colors.white70 : Colors.black54,
+          size: 20,
+        ),
+        onPressed: () {
+          if (authProvider.referralCode.isNotEmpty) {
+            Clipboard.setData(
+              ClipboardData(text: authProvider.referralCode),
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Referral code copied!'),
+              ),
+            );
+          }
+        },
+      ),
+    ],
+  ),
+),
 
             const SizedBox(height: 12),
 

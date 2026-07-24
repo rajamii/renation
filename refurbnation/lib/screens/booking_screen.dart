@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/services.dart';
 import '../models/service_model.dart';
-import '../models/slot_model.dart';
 import '../models/garage_model.dart';
 import '../services/api_client.dart';
 import '../services/logger_util.dart';
@@ -10,7 +8,6 @@ import '../providers/auth_provider.dart';
 
 class BookingScreen extends StatefulWidget {
   final ServiceModel service;
-
   const BookingScreen({super.key, required this.service});
 
   @override
@@ -19,17 +16,12 @@ class BookingScreen extends StatefulWidget {
 
 class _BookingScreenState extends State<BookingScreen> {
   final ApiClient _apiClient = ApiClient();
-
   ServicePrice? _selectedCategoryPrice;
-
   List<GarageVehicle> _garageVehicles = [];
   GarageVehicle? _selectedGarageVehicle;
   bool _isLoadingGarage = true;
-
   DateTime? _selectedDate;
-  List<SlotModel> _slots = [];
-  bool _isLoadingSlots = false;
-  SlotModel? _selectedSlot;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -52,33 +44,8 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
-  Future<void> _fetchAvailableSlots(String formattedDate) async {
-    setState(() {
-      _isLoadingSlots = true;
-      _selectedSlot = null;
-      _slots = [];
-    });
-
-    try {
-      final response = await _apiClient.dio.get(
-        '/slots/',
-        queryParameters: {'date': formattedDate},
-      );
-      setState(() {
-        _slots = (response.data as List)
-            .map((s) => SlotModel.fromJson(s))
-            .toList();
-        _isLoadingSlots = false;
-      });
-    } catch (e) {
-      AppLogger.log("Error pulling targeted slots", e);
-      setState(() => _isLoadingSlots = false);
-    }
-  }
-
   Future<void> _selectDate(BuildContext context) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -99,89 +66,60 @@ class _BookingScreenState extends State<BookingScreen> {
                     surface: Colors.white,
                     onSurface: Color(0xFF1A1A1A),
                   ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: isDark
-                    ? const Color(0xFFB9FF66)
-                    : const Color(0xFF1A1A1A),
-              ),
-            ),
           ),
           child: child!,
         );
       },
     );
-
     if (picked != null) {
-      final String formattedDate =
-          "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       setState(() {
         _selectedDate = picked;
       });
-      _fetchAvailableSlots(formattedDate);
     }
   }
 
   Future<void> _confirmBooking() async {
-    if (_selectedSlot == null ||
-        _selectedDate == null ||
+    if (_selectedDate == null ||
         _selectedCategoryPrice == null ||
-        _selectedGarageVehicle == null) {
+        _selectedGarageVehicle == null ||
+        _isSubmitting) {
       return;
     }
+
+    setState(() => _isSubmitting = true);
 
     final String formattedDate =
         "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
-
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    if (authProvider.userId == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Session Error: User context missing. Routing back...',
-            ),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-
-        await authProvider.logout();
-
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/login', (route) => false);
-        }
-      }
-      return;
-    }
 
     try {
       await _apiClient.dio.post(
         '/bookings/',
         data: {
           'service': widget.service.id,
-          'slot': _selectedSlot!.id,
           'requested_date': formattedDate,
           'garage_vehicle': _selectedGarageVehicle!.id,
-          'user': authProvider.userId,
-          'status': 'PENDING',
+          'booking_source': 'ONLINE',
         },
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Booking Confirmed!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Request Submitted! Office will review availability.'),
+            backgroundColor: Colors.green,
+          ),
+        );
         Navigator.pop(context);
       }
     } catch (e) {
-      AppLogger.log("Booking validation error", e);
+      AppLogger.log("Booking submission error", e);
       if (mounted) {
+        setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to complete booking matching server rules.'),
+            content: Text('Failed to submit booking. Please try again.'),
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -190,19 +128,19 @@ class _BookingScreenState extends State<BookingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool isFormValid =
-        _selectedSlot != null &&
-        _selectedDate != null &&
+    bool isFormValid = _selectedDate != null &&
         _selectedCategoryPrice != null &&
-        _selectedGarageVehicle != null;
+        _selectedGarageVehicle != null &&
+        !_isSubmitting;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('New Booking')),
+      appBar: AppBar(title: const Text('Request Booking')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Service Info Header
             Card(
               margin: EdgeInsets.zero,
               child: Padding(
@@ -214,17 +152,12 @@ class _BookingScreenState extends State<BookingScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Hero(
-                            tag: 'service_title_${widget.service.id}',
-                            child: Material(
-                              color: Colors.transparent,
-                              child: Text(
-                                widget.service.name,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.titleLarge?.copyWith(fontSize: 22),
-                              ),
-                            ),
+                          child: Text(
+                            widget.service.name,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(fontSize: 20),
                           ),
                         ),
                         if (_selectedCategoryPrice != null)
@@ -238,11 +171,11 @@ class _BookingScreenState extends State<BookingScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              "₹${_selectedCategoryPrice!.price.toStringAsFixed(0)}",
+                              " ₹${_selectedCategoryPrice!.price.toStringAsFixed(0)}",
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: Colors.black,
                                 fontWeight: FontWeight.w900,
-                                fontSize: 16,
+                                fontSize: 15,
                               ),
                             ),
                           ),
@@ -257,100 +190,100 @@ class _BookingScreenState extends State<BookingScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 24),
 
+            // Step 1: Select Garage Vehicle
+            Text(
+              "1. Choose Vehicle from Garage",
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 14),
+            ),
+            const SizedBox(height: 10),
             _isLoadingGarage
                 ? const Center(child: CircularProgressIndicator())
                 : _garageVehicles.isEmpty
-                ? Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.redAccent.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: const Text(
-                      'Your garage is empty. Please add a vehicle in your Profile before booking.',
-                      style: TextStyle(color: Colors.redAccent),
-                    ),
-                  )
-                : Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).inputDecorationTheme.fillColor,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<GarageVehicle>(
-                        value: _selectedGarageVehicle,
-                        hint: Text(
-                          'Select Vehicle from Garage',
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.color,
+                    ? Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.redAccent.withValues(alpha: 0.5),
                           ),
                         ),
-                        isExpanded: true,
-                        dropdownColor: Theme.of(context).cardTheme.color,
-                        icon: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: Theme.of(context).primaryColor,
+                        child: const Text(
+                          'Your garage is empty. Please add a vehicle in your Account tab before booking.',
+                          style: TextStyle(color: Colors.redAccent),
                         ),
-                        items: _garageVehicles.map((GarageVehicle vehicle) {
-                          return DropdownMenuItem<GarageVehicle>(
-                            value: vehicle,
-                            child: Text(
-                              '${vehicle.vehicle.brand} ${vehicle.vehicle.name} - ${vehicle.licensePlate}',
+                      )
+                    : Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).inputDecorationTheme.fillColor,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<GarageVehicle>(
+                            value: _selectedGarageVehicle,
+                            hint: Text(
+                              'Select Vehicle',
                               style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium?.color,
+                                color: Theme.of(context).textTheme.bodyMedium?.color,
                               ),
                             ),
-                          );
-                        }).toList(),
-                        onChanged: (GarageVehicle? newValue) {
-                          setState(() {
-                            _selectedGarageVehicle = newValue;
-
-                            if (newValue != null) {
-                              try {
-                                _selectedCategoryPrice = widget.service.prices
-                                    .firstWhere(
-                                      (priceObj) =>
-                                          priceObj.categoryCode
-                                              .trim()
-                                              .toUpperCase() ==
-                                          newValue.vehicle.category
-                                              .trim()
-                                              .toUpperCase(),
-                                    );
-                              } catch (e) {
-                                _selectedCategoryPrice = null;
-                                AppLogger.log(
-                                  "No matching pricing found for category: ${newValue.vehicle.category}",
-                                  e,
-                                );
-                              }
-                            } else {
-                              _selectedCategoryPrice = null;
-                            }
-                          });
-                        },
+                            isExpanded: true,
+                            dropdownColor: Theme.of(context).cardTheme.color,
+                            icon: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                            items: _garageVehicles.map((GarageVehicle vehicle) {
+                              return DropdownMenuItem<GarageVehicle>(
+                                value: vehicle,
+                                child: Text(
+                                  '${vehicle.vehicle.brand} ${vehicle.vehicle.name} (${vehicle.licensePlate})',
+                                  style: TextStyle(
+                                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (GarageVehicle? newValue) {
+                              setState(() {
+                                _selectedGarageVehicle = newValue;
+                                if (newValue != null) {
+                                  try {
+                                    _selectedCategoryPrice = widget.service.prices
+                                        .firstWhere(
+                                          (priceObj) =>
+                                              priceObj.categoryCode
+                                                  .trim()
+                                                  .toUpperCase() ==
+                                              newValue.vehicle.category
+                                                  .trim()
+                                                  .toUpperCase(),
+                                        );
+                                  } catch (e) {
+                                    _selectedCategoryPrice = null;
+                                  }
+                                } else {
+                                  _selectedCategoryPrice = null;
+                                }
+                              });
+                            },
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+            const SizedBox(height: 24),
 
-            const SizedBox(height: 14),
-
-            // Date Picker Trigger Button Container
+            // Step 2: Select Date
+            Text(
+              "2. Select Requested Date",
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 14),
+            ),
+            const SizedBox(height: 10),
             InkWell(
               onTap: () => _selectDate(context),
               borderRadius: BorderRadius.circular(16),
@@ -368,20 +301,21 @@ class _BookingScreenState extends State<BookingScreen> {
                         Icon(
                           Icons.calendar_today_outlined,
                           size: 20,
-                          color: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                          color: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.color
+                              ?.withValues(alpha: 0.7),
                         ),
                         const SizedBox(width: 12),
                         Text(
                           _selectedDate == null
-                              ? 'Select Booking Date'
+                              ? 'Tap to pick date'
                               : "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}",
                           style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.color,
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
                             fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -395,177 +329,18 @@ class _BookingScreenState extends State<BookingScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 36),
 
-            const SizedBox(height: 28),
-
-            if (_selectedDate == null) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24.0),
-                child: Center(
-                  child: Text(
-                    'Please pick a date first to show available slots.',
-                    style: TextStyle(color: Colors.white38, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ] else ...[
-              Text(
-                'Available Windows for chosen date',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontSize: 15),
-              ),
-
-              const SizedBox(height: 12),
-
-              _isLoadingSlots
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    )
-                  : _slots.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.0),
-                      child: Center(
-                        child: Text('No slots left on this specific date.'),
-                      ),
-                    )
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _slots.length,
-                      itemBuilder: (context, index) {
-                        final slot = _slots[index];
-                        final isSelected = _selectedSlot?.id == slot.id;
-                        final isDark =
-                            Theme.of(context).brightness == Brightness.dark;
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeInOut,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? (isDark
-                                        ? Theme.of(
-                                            context,
-                                          ).primaryColor.withValues(alpha: 0.08)
-                                        : const Color(0xFFF5F5F7))
-                                  : Theme.of(context).cardTheme.color,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isSelected
-                                    ? (isDark
-                                          ? const Color(0xFFB9FF66)
-                                          : const Color(0xFF1A1A1A))
-                                    : (isDark
-                                          ? Colors.white10
-                                          : const Color(0xFFE8E8ED)),
-                                width: isSelected ? 2.0 : 1.5,
-                              ),
-                            ),
-                            child: InkWell(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                setState(() => _selectedSlot = slot);
-                              },
-                              borderRadius: BorderRadius.circular(14),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 16,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Shift Window",
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                                color: isSelected
-                                                    ? (isDark
-                                                          ? const Color(
-                                                              0xFFB9FF66,
-                                                            )
-                                                          : const Color(
-                                                              0xFF1A1A1A,
-                                                            ))
-                                                    : null,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          "${slot.startTime} - ${slot.endTime}",
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodyMedium,
-                                        ),
-                                      ],
-                                    ),
-                                    AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 200,
-                                      ),
-                                      curve: Curves.easeInOut,
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: isSelected
-                                              ? (isDark
-                                                    ? const Color(0xFFB9FF66)
-                                                    : const Color(0xFF1A1A1A))
-                                              : (isDark
-                                                    ? Colors.white24
-                                                    : Colors.black26),
-                                          width: 2,
-                                        ),
-                                      ),
-                                      child: isSelected
-                                          ? Container(
-                                              width: 10,
-                                              height: 10,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: isDark
-                                                    ? const Color(0xFFB9FF66)
-                                                    : const Color(0xFF1A1A1A),
-                                              ),
-                                            )
-                                          : const SizedBox(
-                                              width: 10,
-                                              height: 10,
-                                            ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ],
-
-            const SizedBox(height: 20),
+            // Submit Button
             ElevatedButton(
               onPressed: isFormValid ? _confirmBooking : null,
-              style: ElevatedButton.styleFrom(
-                disabledBackgroundColor: Colors.white10,
-                disabledForegroundColor: Colors.white24,
-              ),
-              child: const Text('Confirm Schedule Reservation'),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    )
+                  : const Text('Submit Booking Request'),
             ),
           ],
         ),

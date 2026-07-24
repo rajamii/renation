@@ -137,34 +137,43 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
     return 'N/A';
   }
 
-  void _showQrModal(BuildContext context, dynamic booking) {
-    final String vehicleName = _getVehicleName(booking);
-    final String category = _getVehicleCategory(booking);
-    final String licensePlate = _getLicensePlate(booking);
-    final String qrPayload =
-        "Booking ID: #${booking['id']}\n"
-        "Vehicle: $vehicleName\n"
-        "License Plate: $licensePlate\n"
-        "Category: $category\n"
-        "Date: ${booking['requested_date'] ?? 'N/A'}\n"
-        "Slot Reference: ${booking['slot_start'] ?? 'Slot'} - ${booking['slot_end'] ?? ''}";
+  // lib/widgets/my_bookings_tab.dart
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(28.0),
+void _showQrModal(BuildContext context, dynamic booking) {
+  final String vehicleName = _getVehicleName(booking);
+  final String category = _getVehicleCategory(booking);
+  final String licensePlate = _getLicensePlate(booking);
+  final String qrPayload =
+      "Booking ID: #${booking['id']}\n"
+      "Vehicle: $vehicleName\n"
+      "License Plate: $licensePlate\n"
+      "Category: $category\n"
+      "Date: ${booking['requested_date'] ?? 'N/A'}";
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true, // 👈 Allows the modal to expand appropriately
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (context) {
+      return Padding(
+        padding: EdgeInsets.only(
+          left: 24.0,
+          right: 24.0,
+          top: 20.0,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20.0,
+        ),
+        child: SingleChildScrollView( // 👈 Prevents vertical RenderFlex overflows
+          physics: const BouncingScrollPhysics(),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 40,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
+                margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: Colors.white12,
                   borderRadius: BorderRadius.circular(2),
@@ -173,14 +182,16 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
               Text(
                 booking['service_name'] ?? 'Workshop Treatment',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                  color: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.color
+                      ?.withValues(alpha: 0.7),
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 "REFERENCE #${booking['id']}",
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -188,17 +199,17 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
                   letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: QrImageView(
                   data: qrPayload,
                   version: QrVersions.auto,
-                  size: 180.0,
+                  size: 160.0, // Scaled slightly down to fit compact viewports comfortably
                   gapless: true,
                   eyeStyle: const QrEyeStyle(
                     eyeShape: QrEyeShape.square,
@@ -210,21 +221,23 @@ class _MyBookingsTabState extends State<MyBookingsTab> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               Text(
                 "Present code at desk for operation dispatch lookup",
                 textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontSize: 12),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(fontSize: 12),
               ),
               const SizedBox(height: 12),
             ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
